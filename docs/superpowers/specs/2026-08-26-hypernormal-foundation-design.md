@@ -86,7 +86,9 @@ Definition law 4 says no partial write. State is one JSON value in one storage r
 | `/f/:name` | PUT | owner | Register or replace a face `{name, title, html, targets, visibility}` |
 | `/f/:name` | DELETE | owner | Delete a face |
 
-Error form everywhere: `{ok: false, error}` with a message an agent can act on. Denials are 404, never 403. Transport and app-level success are distinct: `{ok: true, result: {ok: false, ...}}` is a valid reply and PROTOCOL.md says so.
+Error form everywhere: `{ok: false, error}` with a message an agent can act on. Denials are 404, never 403.
+
+CORS is open on the JSON surface (`Access-Control-Allow-Origin: *`, with `Authorization` and `Content-Type` allowed and `OPTIONS` answered), because derived faces run from anywhere: a local file, a sandboxed preview, another host. Authorization is the owner key and the law, never the origin. Transport and app-level success are distinct: `{ok: true, result: {ok: false, ...}}` is a valid reply and PROTOCOL.md says so.
 
 Headers on every response: `Referrer-Policy: no-referrer`; `X-Robots-Tag: noindex` except on public surfaces. Responses to browser-served HTML include the Chrome origin-trial token from an env var when set.
 
