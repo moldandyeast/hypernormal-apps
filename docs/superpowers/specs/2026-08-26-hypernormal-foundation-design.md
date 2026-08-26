@@ -124,7 +124,7 @@ Schedule: `schedule = (cron, verb)`, UTC, evaluated with the ported cron module.
 `charter.ts` validates at mint and amend:
 
 - `intent`: non-empty prose.
-- Verb names: `[a-zA-Z0-9_.-]`, 1 to 64 chars, unique. This is inside WebMCP's tool-name rule so the bridge never renames.
+- Verb names: `[a-zA-Z0-9_-]`, 1 to 64 chars, unique. Inside WebMCP's tool-name rule so the bridge never renames, and dot-free so every verb is a valid property name in the face runtime.
 - Each verb: non-empty `description`, valid `inputSchema` (see below), non-empty `code`, `access` in `{owner, public}`.
 - `law`: visibility in `{private, unlisted, public}`, `allowedHosts` a list of hostnames.
 - Total size within the charter budget.
@@ -145,13 +145,17 @@ Guest minting: env var `OPEN_MINT`. Default absent, meaning closed. When open, `
 
 ## 8. Face runtime and WebMCP bridge
 
-`face/runtime.js`, dependency-free, served at `/runtime.js`. A convenience, never a requirement.
+`face/runtime.js`, dependency-free, served at `/runtime.js`. A convenience, never a requirement. An ES module with named exports, no global.
 
-- `Hypernormal.connect(appUrl)` resolves after charter fetch and first socket state message.
-- `app.state`, `app.charter`, `app.onState(fn)`, `app.onCharter(fn)`, `app.invoke(verb, input)`, `app.presence.send(s)`, `app.presence.on(fn)`.
-- Hydration only from the socket. No optimistic mutation.
-- Bridge: when `document.modelContext` exists, register every public verb as a tool. Name to name, description to description, `inputSchema` verbatim, `execute` delegates to `invoke`. Every tool carries `untrustedContentHint: true`. One AbortController unregisters all tools on disconnect. On a `charter` socket message, tools re-register, so amendments update live tool sets.
-- The tool-mapping function `toolsFromCharter(charter)` is pure and exported for testing.
+The API is a projection of the charter, built on two shapes used uniformly: a live value `{value, watch(fn)}` where `watch` fires immediately with the current value and on every change, and an event stream `{emit(e), watch(fn)}` where `watch` fires only on events.
+
+- `connect(appUrl, options)` resolves after charter fetch and first socket state message.
+- `app.state`: live value of the app's state. `app.charter`: live value of the charter. Hydration only from the socket; `watch(render)` is rendering and hydration in one line. No optimistic mutation.
+- `app.verbs.<name>(input)`: one async function per public verb, generated from the charter at connect time and regenerated on charter change. If the verb ran, the call returns its result. If it could not run (unknown verb, invalid input, budget exceeded, transport failure), the call throws with the server's message. `app.invoke(name, input)` remains as the escape hatch for dynamic names and carries the same error contract.
+- `app.presence`: event stream. `emit` sends a signal, `watch` witnesses others' signals. Never stored.
+- `app.close()` ends the socket and unregisters tools.
+- Bridge: `options.tools` defaults to true where `document.modelContext` exists. Every public verb registers as a tool: name to name, description to description, `inputSchema` verbatim, `execute` delegates to the verb function. Every tool carries `untrustedContentHint: true`. One AbortController unregisters all tools on close. On a `charter` socket message, tools re-register, so amendments update live tool sets.
+- Named exports: `connect`, and the pure `toolsFromCharter(charter)` for testing and reuse.
 
 Socket protocol (PROTOCOL.md carries exact shapes):
 
@@ -180,7 +184,7 @@ Socket protocol (PROTOCOL.md carries exact shapes):
 
 - `DEFINITION.md`: the definition, verbatim, governing.
 - `README.md`: what this is, fork and deploy in five steps, one secret, the manual's location. Written in the definition's register. No claims the tests do not back.
-- `PROTOCOL.md`: routes, wire shapes, error forms, budgets, the schema subset, the socket protocol, the WebMCP mapping. Everything an implementer or agent needs without reading source.
+- `PROTOCOL.md`: routes, wire shapes, error forms, budgets, the schema subset, the socket protocol, the WebMCP mapping, and a short Semantics section in plain language: a verb is a pure step from state and input to state and result; an invocation is atomic; invocations on one app are totally ordered; state is a value you can always read and watch, presence is events you can only witness. Everything an implementer or agent needs without reading source.
 - `GET /` serves the in-band manual for agents: the contract, how to read a charter, how to invoke, how to watch, how minting works on this installation.
 
 ## 12. Open risks
