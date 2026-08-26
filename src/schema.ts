@@ -18,15 +18,18 @@ export function checkSchema(node: unknown, depth = 0): string | null {
   for (const k of Object.keys(n)) {
     if (!KEYS[n.type as string].includes(k)) return `schema key "${k}" is outside the subset for type ${n.type}`;
   }
-  if (n.type === "object" && n.properties !== undefined) {
-    if (typeof n.properties !== "object" || n.properties === null) return "properties must be an object";
-    for (const [k, v] of Object.entries(n.properties)) {
-      const err = checkSchema(v, depth + 1);
-      if (err) return `properties.${k}: ${err}`;
+  if (n.type === "object") {
+    if (n.properties !== undefined) {
+      if (typeof n.properties !== "object" || n.properties === null || Array.isArray(n.properties)) return "properties must be an object";
+      for (const [k, v] of Object.entries(n.properties)) {
+        const err = checkSchema(v, depth + 1);
+        if (err) return `properties.${k}: ${err}`;
+      }
     }
     if (n.required !== undefined) {
       if (!Array.isArray(n.required) || n.required.some((r) => typeof r !== "string")) return "required must be a list of strings";
-      for (const r of n.required) if (!(r in (n.properties as object))) return `required "${r}" is not a declared property`;
+      const props = (n.properties as Record<string, unknown>) ?? {};
+      for (const r of n.required) if (!(r in props)) return `required "${r}" is not a declared property`;
     }
   }
   if (n.type === "array") {

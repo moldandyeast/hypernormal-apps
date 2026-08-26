@@ -17,6 +17,12 @@ describe("checkSchema", () => {
     for (let i = 0; i < 9; i++) node = { type: "object", properties: { x: node } };
     expect(checkSchema(node)).toMatch(/depth/);
   });
+  it("rejects required without declared properties", () => {
+    expect(checkSchema({ type: "object", required: ["x"] })).toMatch(/required.*not a declared property|required.*is not declared/);
+  });
+  it("rejects properties as array (must be object)", () => {
+    expect(checkSchema({ type: "object", properties: [] })).toMatch(/properties/);
+  });
 });
 
 describe("checkInput", () => {

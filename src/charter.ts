@@ -9,7 +9,7 @@ export function checkCharter(c: unknown): string | null {
   if (typeof c !== "object" || c === null) return "charter must be a JSON object";
   const ch = c as Record<string, unknown>;
   if (typeof ch.intent !== "string" || ch.intent.trim() === "") return "intent (non-empty prose) is required";
-  if (typeof ch.verbs !== "object" || ch.verbs === null) return "verbs (object of name to verb) is required";
+  if (typeof ch.verbs !== "object" || ch.verbs === null || Array.isArray(ch.verbs)) return "verbs (object mapping name to verb) is required";
   for (const [name, v] of Object.entries(ch.verbs as Record<string, unknown>)) {
     if (!VERB_NAME.test(name)) return `verb name "${name}" must match ${VERB_NAME}`;
     const err = checkVerb(v);
@@ -47,7 +47,7 @@ export function applyAmendment(current: Charter, patch: unknown): { charter: Cha
   if (p.law !== undefined) next.law = p.law as Charter["law"];
   if (p.schedule !== undefined) next.schedule = (p.schedule ?? undefined) as Charter["schedule"];
   if (p.verbs !== undefined) {
-    if (typeof p.verbs !== "object" || p.verbs === null) return { error: "verbs must be an object; null value deletes a verb" };
+    if (typeof p.verbs !== "object" || p.verbs === null || Array.isArray(p.verbs)) return { error: "verbs must be an object; null value deletes a verb" };
     for (const [name, v] of Object.entries(p.verbs as Record<string, unknown>)) {
       if (v === null) delete next.verbs[name];
       else next.verbs[name] = v as Verb;
