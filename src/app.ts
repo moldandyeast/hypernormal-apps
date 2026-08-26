@@ -39,6 +39,13 @@ export class App extends DurableObject<Env> {
 
     if (path === "/ws") {
       if (request.headers.get("Upgrade") !== "websocket") return err(426, "Expected a WebSocket upgrade.");
+      // The router gates this too, but its gate is two steps — read the
+      // charter, then upgrade — and an amendment to private can land in the
+      // gap. Here the charter read above and any amendment's write are already
+      // serialized inside this object, so there is no window left: the app
+      // itself is the authority on who may watch it, and the router's check
+      // becomes a way to save a round trip rather than the only defence.
+      if (charter.law.visibility === "private" && !owner) return err(404, "No app lives at this URL.");
       const pair = new WebSocketPair();
       this.ctx.acceptWebSocket(pair[1]);
       pair[1].send(JSON.stringify({ type: "state", state: await this.readState() }));

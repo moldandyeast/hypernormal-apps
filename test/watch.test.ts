@@ -33,6 +33,24 @@ describe("watching", () => {
     expect(types).toEqual(["state", "state", "state", "charter"]);
     expect(messages[3].charter.intent).toMatch(/Edition 2/);
   });
+  it("refuses a guest's socket on a private app without the router's help", async () => {
+    // Straight at the Durable Object, no router in the path: the app itself
+    // decides who may watch it, so the router's connect-time gate cannot be
+    // raced by an amendment landing between its charter read and its upgrade.
+    const priv = structuredClone(counterCharter) as any;
+    priv.law.visibility = "private";
+    const { stub } = await mint(priv, { count: 0 });
+
+    const denied = await stub.fetch("https://do/ws", { headers: { ...guest, Upgrade: "websocket" } });
+    expect(denied.status).toBe(404);
+    expect(denied.webSocket).toBe(null);
+    expect(((await denied.json()) as any).error).toMatch(/No app lives at this URL/);
+
+    const allowed = await stub.fetch("https://do/ws", { headers: { "X-Owner": "1", Upgrade: "websocket" } });
+    expect(allowed.status).toBe(101);
+    allowed.webSocket!.accept();
+    allowed.webSocket!.close();
+  });
   it("closes every watcher when an amendment makes the app private", async () => {
     // counterCharter is unlisted, so this guest is admitted when it connects.
     const { stub } = await mint(counterCharter, { count: 0 });
