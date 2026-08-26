@@ -4,6 +4,7 @@ import { checkCharter, byteLength, applyAmendment } from "./charter";
 import { checkInput } from "./schema";
 import { execute, type HostHttp } from "./sandbox";
 import { safeFetch } from "./safe-fetch";
+import { nextCronTime } from "./schedule";
 
 const err = (status: number, error: string) => Response.json({ ok: false, error }, { status });
 
@@ -58,6 +59,7 @@ export class App extends DurableObject<Env> {
     if (body.state !== undefined && byteLength(body.state) > BUDGET.STATE) return err(400, "state budget exceeded");
     await this.ctx.storage.put("charter", body.charter as Charter);
     await this.ctx.storage.put("state", body.state ?? {});
+    await this.applySchedule(body.charter as Charter);
     return Response.json({ ok: true }, { status: 201 });
   }
 
@@ -107,6 +109,7 @@ export class App extends DurableObject<Env> {
       await this.pushHistory(current);
       await this.ctx.storage.put("charter", out.charter);
       this.broadcastCharter(out.charter);
+      await this.applySchedule(out.charter);
       return Response.json({ ok: true, verbs: Object.keys(out.charter.verbs) });
     });
   }
@@ -126,6 +129,7 @@ export class App extends DurableObject<Env> {
       await this.pushHistory(current);
       await this.ctx.storage.put("charter", entry.charter);
       this.broadcastCharter(entry.charter);
+      await this.applySchedule(entry.charter);
       return Response.json({ ok: true, restored: entry.version, verbs: Object.keys(entry.charter.verbs) });
     });
   }
@@ -145,6 +149,32 @@ export class App extends DurableObject<Env> {
     while (history.length > BUDGET.HISTORY) history.shift();
     await this.ctx.storage.put("historySeq", seq);
     await this.ctx.storage.put("history", history);
+  }
+
+  private async applySchedule(charter: Charter): Promise<void> {
+    if (charter.schedule) {
+      await this.ctx.storage.setAlarm(nextCronTime(charter.schedule.cron, Date.now()));
+    } else {
+      await this.ctx.storage.deleteAlarm();
+    }
+  }
+
+  async alarm(): Promise<void> {
+    const charter = await this.ctx.storage.get<Charter>("charter");
+    if (!charter?.schedule) return;
+    const verb = charter.verbs[charter.schedule.verb];
+    if (verb) {
+      await this.runSerial(async () => {
+        const state = await this.readState();
+        const hostHttp = charter.law.allowedHosts.length > 0 ? this.makeHostHttp(charter.law.allowedHosts) : undefined;
+        const out = await execute(verb.code, state, { scheduled: true }, { hostHttp });
+        if (out.ok && byteLength(out.state) <= BUDGET.STATE) {
+          await this.ctx.storage.put("state", out.state);
+          this.broadcastState(out.state);
+        }
+      });
+    }
+    await this.applySchedule(charter);
   }
 
   protected broadcastCharter(charter: Charter): void {
