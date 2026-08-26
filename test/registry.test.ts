@@ -27,4 +27,12 @@ describe("registry", () => {
     expect((await j("DELETE", "/faces/list")).status).toBe(200);
     expect((await j("GET", "/faces/list")).status).toBe(404);
   });
+  it("enforces the face budget in UTF-8 bytes, not JS string length", async () => {
+    // Each "🎉" is 2 UTF-16 code units (JS .length) but 4 UTF-8 bytes: 200,000 of them is
+    // 400,000 in .length (under BUDGET.FACE=512*1024=524288) but 800,000 UTF-8 bytes (over budget).
+    const html = "🎉".repeat(200_000);
+    expect(html.length).toBeLessThan(512 * 1024);
+    const face = { title: "Emoji", html, targets: [], visibility: "public" };
+    expect((await j("PUT", "/faces/emoji", face)).status).toBe(400);
+  });
 });

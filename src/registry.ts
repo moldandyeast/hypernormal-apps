@@ -36,7 +36,7 @@ export class Registry extends DurableObject<Env> {
       if (!VERB_NAME.test(name)) return err(400, `face name must match ${VERB_NAME}`);
       if (m === "PUT") {
         const b = (await request.json()) as { title: string; html: string; targets: string[]; visibility: string };
-        if (typeof b.html !== "string" || b.html.length > BUDGET.FACE) return err(400, `face budget exceeded: over ${BUDGET.FACE} bytes`);
+        if (typeof b.html !== "string" || new TextEncoder().encode(b.html).length > BUDGET.FACE) return err(400, `face budget exceeded: over ${BUDGET.FACE} bytes`);
         sql.exec("INSERT INTO faces (name, title, html, targets, visibility, updated) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(name) DO UPDATE SET title=excluded.title, html=excluded.html, targets=excluded.targets, visibility=excluded.visibility, updated=excluded.updated", name, b.title ?? name, b.html, JSON.stringify(b.targets ?? []), b.visibility ?? "unlisted", Date.now());
         return Response.json({ ok: true });
       }
