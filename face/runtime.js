@@ -48,13 +48,15 @@ export async function connect(appUrl, options = {}) {
   const presenceWatchers = new Set();
 
   const ws = new WebSocket(base.replace(/^http/, "ws") + "/ws");
-  const firstState = new Promise((resolve) => {
+  const firstState = new Promise((resolve, reject) => {
     ws.addEventListener("message", (e) => {
       const msg = JSON.parse(e.data);
       if (msg.type === "state") { state.set(msg.state); resolve(); }
       else if (msg.type === "charter") { charter.set(msg.charter); retool(); }
       else if (msg.type === "presence") { for (const fn of presenceWatchers) fn(msg); }
     });
+    ws.addEventListener("error", () => reject(new Error(`WebSocket connection to ${base}/ws failed`)));
+    ws.addEventListener("close", () => reject(new Error(`WebSocket to ${base}/ws closed before receiving state`)));
   });
 
   const verbs = {};
@@ -66,14 +68,21 @@ export async function connect(appUrl, options = {}) {
   }
 
   let toolController = null;
-  async function retool() {
-    bindVerbs();
+  async function registerTools() {
     if (options.tools === false || typeof document === "undefined" || !("modelContext" in document)) return;
     if (toolController) toolController.abort();
     toolController = new AbortController();
+    const signal = toolController.signal;
     for (const tool of toolsFromCharter(charter.value, invoke)) {
-      await document.modelContext.registerTool(tool, { signal: toolController.signal });
+      await document.modelContext.registerTool(tool, { signal });
     }
+  }
+
+  let retooling = Promise.resolve();
+  function retool() {
+    bindVerbs();
+    retooling = retooling.then(registerTools).catch(() => {});
+    return retooling;
   }
 
   await firstState;
