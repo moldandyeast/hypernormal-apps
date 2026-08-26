@@ -1,0 +1,25 @@
+{
+  "name": "hypernormal",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npm run build:wasm && wrangler dev",
+    "deploy": "npm run build:wasm && wrangler deploy",
+    "build:wasm": "node -e \"require('fs').copyFileSync(require.resolve('@jitl/quickjs-wasmfile-release-asyncify/wasm'), 'src/quickjs.wasm')\"",
+    "test": "npm run build:wasm && vitest run",
+    "typecheck": "wrangler types && tsc --noEmit"
+  },
+  "dependencies": {
+    "@jitl/quickjs-wasmfile-release-asyncify": "^0.32.0",
+    "croner": "^9.0.0",
+    "quickjs-emscripten-core": "^0.32.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.18.4",
+    "@cloudflare/workers-types": "^5.20260713.1",
+    "miniflare": "4.20260708.1",
+    "typescript": "^5.9.0",
+    "vitest": "^4.1.10",
+    "wrangler": "^4.110.0"
+  }
+}

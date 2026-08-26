@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.dev.vars
+.wrangler/
+*.log
+.DS_Store
+.context/
+src/quickjs.wasm
+.owner-key
+.session-secret
+.access-service-token
+worker-configuration.d.ts
