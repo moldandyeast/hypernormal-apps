@@ -109,6 +109,7 @@ export class App extends DurableObject<Env> {
       await this.pushHistory(current);
       await this.ctx.storage.put("charter", out.charter);
       this.broadcastCharter(out.charter);
+      this.closeSocketsIfPrivate(out.charter);
       await this.applySchedule(out.charter);
       return Response.json({ ok: true, verbs: Object.keys(out.charter.verbs) });
     });
@@ -129,6 +130,7 @@ export class App extends DurableObject<Env> {
       await this.pushHistory(current);
       await this.ctx.storage.put("charter", entry.charter);
       this.broadcastCharter(entry.charter);
+      this.closeSocketsIfPrivate(entry.charter);
       await this.applySchedule(entry.charter);
       return Response.json({ ok: true, restored: entry.version, verbs: Object.keys(entry.charter.verbs) });
     });
@@ -188,6 +190,19 @@ export class App extends DurableObject<Env> {
 
   protected broadcastCharter(charter: Charter): void {
     this.broadcast(JSON.stringify({ type: "charter", charter }));
+  }
+
+  // The router gates a socket when it is opened, which leaves one gap: an app
+  // amended to `private` while guests are already watching would keep feeding
+  // them state and charters forever — the opposite of what privatizing an app
+  // means. Called after broadcastCharter, so a socket about to be closed still
+  // learns why. Only `private` forces a reconnect: `unlisted` still admits
+  // anyone holding the link, including whoever is already connected.
+  private closeSocketsIfPrivate(charter: Charter): void {
+    if (charter.law.visibility !== "private") return;
+    for (const ws of this.ctx.getWebSockets()) {
+      try { ws.close(4001, "This app is now private."); } catch { /* already closed */ }
+    }
   }
 
   private makeHostHttp(allowedHosts: string[]): HostHttp {

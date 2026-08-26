@@ -132,7 +132,18 @@ function withOriginTrial(document: string, token: string): string {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const res = await handle(request, env);
+    let res: Response;
+    try {
+      res = await handle(request, env);
+    } catch (e) {
+      // A throw that escapes handle() would otherwise leave workerd to answer
+      // with a raw 500: no error form, no CORS, and none of the headers
+      // finalize() exists to guarantee. Reachable without credentials — a
+      // header value carrying a newline throws inside the Headers constructor,
+      // and the sandbox can fail through its own WASM teardown rather than
+      // resolving — so the boundary is a route like any other.
+      res = json({ ok: false, error: e instanceof Error ? e.message : "internal error" }, 500);
+    }
     return finalize(res, res.headers.get(INDEX_MARK) === "1");
   },
 };

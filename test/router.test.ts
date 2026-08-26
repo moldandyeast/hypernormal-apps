@@ -1,8 +1,27 @@
 import { describe, it, expect } from "vitest";
-import { SELF } from "cloudflare:test";
+import { SELF, env } from "cloudflare:test";
 import { counterCharter } from "./helpers";
 
 const owner = { Authorization: "Bearer test-owner-key" };
+
+// Per-test binding overrides. `env` from cloudflare:test is the same object the
+// Worker under test receives, so setting a var here is what this installation's
+// operator setting it would be; the original is always put back.
+async function withEnv<T>(patch: Record<string, string>, fn: () => Promise<T>): Promise<T> {
+  const before: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(patch)) {
+    before[k] = (env as Record<string, unknown>)[k];
+    (env as Record<string, unknown>)[k] = v;
+  }
+  try {
+    return await fn();
+  } finally {
+    for (const k of Object.keys(patch)) {
+      if (before[k] === undefined) delete (env as Record<string, unknown>)[k];
+      else (env as Record<string, unknown>)[k] = before[k];
+    }
+  }
+}
 
 async function mintPublic(charter = counterCharter) {
   const res = await SELF.fetch("https://x/apps", { method: "POST", headers: owner, body: JSON.stringify({ charter }) });
@@ -101,6 +120,43 @@ describe("router", () => {
     const priv = await SELF.fetch("https://x/f/none");
     expect(priv.status).toBe(404);
     expect(priv.headers.get("X-Robots-Tag")).toBe("noindex");
+  });
+  it("opens minting to guests when this installation says so", async () => {
+    const guestMint = () => SELF.fetch("https://x/apps", { method: "POST", body: JSON.stringify({ charter: counterCharter }) });
+    const open = await withEnv({ OPEN_MINT: "true" }, guestMint);
+    expect(open.status).toBe(201);
+    expect(((await open.json()) as any).id).toMatch(/^[0-9a-f]{64}$/);
+    // A value that is not exactly "true" leaves minting closed.
+    expect((await withEnv({ OPEN_MINT: "1" }, guestMint)).status).toBe(404);
+    expect((await guestMint()).status).toBe(404);
+  });
+  it("injects the origin-trial token into every shape of face document", async () => {
+    const token = 'A"B';
+    const meta = `<meta http-equiv="origin-trial" content="A&quot;B">`;
+    const put = (name: string, body: string) =>
+      SELF.fetch(`https://x/f/${name}`, { method: "PUT", headers: owner, body: JSON.stringify({ title: name, html: body, targets: [], visibility: "unlisted" }) });
+    await put("withhead", `<!doctype html><html><head><title>t</title></head><body>b</body></html>`);
+    await put("doctypeonly", `<!doctype html><p>b</p>`);
+    await put("bare", `<p>b</p>`);
+    const serve = async (name: string) => (await SELF.fetch(`https://x/f/${name}`)).text();
+
+    await withEnv({ WEBMCP_OT_TOKEN: token }, async () => {
+      expect(await serve("withhead")).toContain(`<head>${meta}<title>t</title>`);
+      expect(await serve("doctypeonly")).toBe(`<!doctype html>${meta}<p>b</p>`);
+      expect(await serve("bare")).toBe(`${meta}<p>b</p>`);
+    });
+    // No token configured: the face is served exactly as it was written.
+    expect(await serve("doctypeonly")).toBe(`<!doctype html><p>b</p>`);
+  });
+  it("turns a thrown error into the error form, with the usual headers", async () => {
+    // A key carrying a newline throws inside the Headers constructor on the way
+    // to the bearer comparison: an unauthenticated caller reaching the boundary.
+    const res = await SELF.fetch("https://x/login", { method: "POST", body: new URLSearchParams({ key: "a\nb" }) });
+    expect(res.status).toBe(500);
+    expect((await res.json()) as any).toMatchObject({ ok: false });
+    expect(res.headers.get("Referrer-Policy")).toBe("no-referrer");
+    expect(res.headers.get("X-Robots-Tag")).toBe("noindex");
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("*");
   });
   it("login mints a session cookie for the right key", async () => {
     const res = await SELF.fetch("https://x/login", { method: "POST", body: new URLSearchParams({ key: "test-owner-key" }), redirect: "manual" });

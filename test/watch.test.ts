@@ -33,6 +33,48 @@ describe("watching", () => {
     expect(types).toEqual(["state", "state", "state", "charter"]);
     expect(messages[3].charter.intent).toMatch(/Edition 2/);
   });
+  it("closes every watcher when an amendment makes the app private", async () => {
+    // counterCharter is unlisted, so this guest is admitted when it connects.
+    const { stub } = await mint(counterCharter, { count: 0 });
+    const a = await open(stub);
+    await settle();
+    expect(a.messages[0]).toEqual({ type: "state", state: { count: 0 } });
+    const closes: { code: number; reason: string }[] = [];
+    a.ws.addEventListener("close", (e: CloseEvent) => { closes.push({ code: e.code, reason: e.reason }); });
+
+    await stub.fetch("https://do/charter", {
+      method: "PUT",
+      headers: { "X-Owner": "1" },
+      body: JSON.stringify({ law: { visibility: "private", allowedHosts: [] } }),
+    });
+    await settle();
+
+    // The final charter still reaches the socket, then the socket goes.
+    expect(a.messages.at(-1).type).toBe("charter");
+    expect(closes).toHaveLength(1);
+    expect(closes[0].code).toBe(4001);
+    expect(closes[0].reason).toMatch(/private/i);
+  });
+  it("leaves watchers connected when an amendment only makes the app unlisted", async () => {
+    const pub = structuredClone(counterCharter) as any;
+    pub.law.visibility = "public";
+    const { stub } = await mint(pub, { count: 0 });
+    const a = await open(stub);
+    await settle();
+    const closes: number[] = [];
+    a.ws.addEventListener("close", (e: CloseEvent) => { closes.push(e.code); });
+
+    await stub.fetch("https://do/charter", {
+      method: "PUT",
+      headers: { "X-Owner": "1" },
+      body: JSON.stringify({ law: { visibility: "unlisted", allowedHosts: [] } }),
+    });
+    await stub.fetch("https://do/rpc/bump", { method: "POST", headers: guest, body: "{}" });
+    await settle();
+
+    expect(closes).toHaveLength(0);
+    expect(a.messages.at(-1)).toEqual({ type: "state", state: { count: 1 } });
+  });
   it("relays presence to others only, never stores it, enforces the signal budget", async () => {
     const { stub } = await mint(counterCharter);
     const a = await open(stub);
