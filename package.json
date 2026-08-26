@@ -3,20 +3,24 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "npm run build:wasm && wrangler dev",
-    "deploy": "npm run build:wasm && wrangler deploy",
+    "dev": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
+    "build": "npm run build:wasm && npm run build:runtime",
     "build:wasm": "node -e \"require('fs').copyFileSync(require.resolve('@jitl/quickjs-wasmfile-release-asyncify/wasm'), 'src/quickjs.wasm')\"",
-    "test": "npm run build:wasm && vitest run",
+    "build:runtime": "node -e \"require('fs').copyFileSync('face/runtime.js', 'src/runtime-source.txt')\"",
+    "test": "npm run build && vitest run",
     "typecheck": "wrangler types && tsc --noEmit"
   },
   "dependencies": {
     "@jitl/quickjs-wasmfile-release-asyncify": "^0.32.0",
     "croner": "^9.0.0",
+    "qrcode-generator": "^2.0.4",
     "quickjs-emscripten-core": "^0.32.0"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.18.4",
     "@cloudflare/workers-types": "^5.20260713.1",
+    "@types/qrcode-generator": "^0.0.16",
     "miniflare": "4.20260708.1",
     "typescript": "^5.9.0",
     "vitest": "^4.1.10",

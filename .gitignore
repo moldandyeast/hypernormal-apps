@@ -6,6 +6,7 @@ dist/
 .DS_Store
 .context/
 src/quickjs.wasm
+src/runtime-source.txt
 .owner-key
 .session-secret
 .access-service-token

@@ -10,7 +10,15 @@
     ]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["App", "Registry"] }],
-  "rules": [{ "type": "CompiledWasm", "globs": ["**/*.wasm"], "fallthrough": true }],
+  "rules": [
+    { "type": "CompiledWasm", "globs": ["**/*.wasm"], "fallthrough": true },
+    // The face runtime ships to browsers as source, so the Worker imports it as
+    // text and serves it verbatim at GET /runtime.js. `npm run build:runtime`
+    // copies face/runtime.js to src/runtime-source.txt (gitignored, regenerated
+    // before every dev, test and deploy) because a Text rule over face/**/*.js
+    // would also turn the module the face-runtime tests import into a string.
+    { "type": "Text", "globs": ["src/*.txt"], "fallthrough": true }
+  ],
   "unsafe": {
     "bindings": [
       { "name": "PUBLIC_RL", "type": "ratelimit", "namespace_id": "3001", "simple": { "limit": 200, "period": 60 } },
