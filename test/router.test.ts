@@ -76,6 +76,68 @@ describe("router", () => {
     expect(s.state).toEqual({});
     expect((await (await SELF.fetch(`https://x/a/${f.id}`)).json() as any).charter.intent).toMatch(/counter/i);
   });
+  it("resolves a prototype-chain verb name to an ordinary 404, not a 500", async () => {
+    const id = await mintPublic();
+    for (const name of ["constructor", "toString", "valueOf", "hasOwnProperty", "__proto__"]) {
+      const res = await SELF.fetch(`https://x/a/${id}/rpc/${name}`, { method: "POST", body: "{}" });
+      expect(res.status, name).toBe(404);
+      const body = (await res.json()) as any;
+      expect(body.ok).toBe(false);
+      expect(body.error).toMatch(/No verb/);
+    }
+  });
+  it("404s raw DO routes that skip registry upkeep: /retire and raw /charter", async () => {
+    const id = await mintPublic();
+    // The raw retire would reach App.retire without unregistering; forbidden.
+    const rawRetire = await SELF.fetch(`https://x/a/${id}/retire`, { method: "POST", headers: owner, body: "{}" });
+    expect(rawRetire.status).toBe(404);
+    // The raw amend would reach App.amend without refreshing the registry cache.
+    const rawCharter = await SELF.fetch(`https://x/a/${id}/charter`, { method: "PUT", headers: owner, body: JSON.stringify({ intent: "x. State is {count}." }) });
+    expect(rawCharter.status).toBe(404);
+    // /manifest is not a route at all, and unrecognized suffixes 404 too.
+    expect((await SELF.fetch(`https://x/a/${id}/manifest`)).status).toBe(404);
+    // The app is untouched by any of the above: it still resolves and is unretired.
+    expect((await SELF.fetch(`https://x/a/${id}`, { headers: owner })).status).toBe(200);
+  });
+  it("amending public->private through the proper route drops the app from the public listing", async () => {
+    const pub = structuredClone(counterCharter) as any; pub.law.visibility = "public";
+    const id = ((await (await SELF.fetch("https://x/apps", { method: "POST", headers: owner, body: JSON.stringify({ charter: pub }) })).json()) as any).id;
+    const before = (await (await SELF.fetch("https://x/apps")).json()) as any;
+    expect(before.apps.some((a: any) => a.id === id)).toBe(true);
+    const put = await SELF.fetch(`https://x/a/${id}`, { method: "PUT", headers: owner, body: JSON.stringify({ law: { visibility: "private", allowedHosts: [] } }) });
+    expect(put.status).toBe(200);
+    const after = (await (await SELF.fetch("https://x/apps")).json()) as any;
+    expect(after.apps.some((a: any) => a.id === id)).toBe(false);
+  });
+  it("rollback through the router refreshes the registry when it restores visibility", async () => {
+    const pub = structuredClone(counterCharter) as any; pub.law.visibility = "public";
+    const id = ((await (await SELF.fetch("https://x/apps", { method: "POST", headers: owner, body: JSON.stringify({ charter: pub }) })).json()) as any).id;
+    // Amend public -> private: drops it from the public listing, and records the
+    // public charter as history version 1.
+    await SELF.fetch(`https://x/a/${id}`, { method: "PUT", headers: owner, body: JSON.stringify({ law: { visibility: "private", allowedHosts: [] } }) });
+    expect(((await (await SELF.fetch("https://x/apps")).json()) as any).apps.some((a: any) => a.id === id)).toBe(false);
+    // Roll back to the public version: the router refreshes the registry, so it lists again.
+    const rb = await SELF.fetch(`https://x/a/${id}/rollback`, { method: "POST", headers: owner, body: JSON.stringify({ version: 1 }) });
+    expect(rb.status).toBe(200);
+    expect(((await (await SELF.fetch("https://x/apps")).json()) as any).apps.some((a: any) => a.id === id)).toBe(true);
+  });
+  it("forces allowedHosts empty on a guest mint, leaves an owner mint's intact", async () => {
+    const withHosts = structuredClone(counterCharter) as any;
+    withHosts.law = { visibility: "public", allowedHosts: ["example.com"] };
+    // Guest mint under OPEN_MINT: the stored charter must carry no allowedHosts.
+    const guestId = await withEnv({ OPEN_MINT: "true" }, async () => {
+      const res = await SELF.fetch("https://x/apps", { method: "POST", body: JSON.stringify({ charter: withHosts }) });
+      expect(res.status).toBe(201);
+      return ((await res.json()) as any).id as string;
+    });
+    const guestCharter = (await (await SELF.fetch(`https://x/a/${guestId}`)).json()) as any;
+    expect(guestCharter.charter.law.allowedHosts).toEqual([]);
+    // Owner mint keeps whatever it specified.
+    const ownerRes = await SELF.fetch("https://x/apps", { method: "POST", headers: owner, body: JSON.stringify({ charter: withHosts }) });
+    const ownerId = ((await ownerRes.json()) as any).id;
+    const ownerCharter = (await (await SELF.fetch(`https://x/a/${ownerId}`)).json()) as any;
+    expect(ownerCharter.charter.law.allowedHosts).toEqual(["example.com"]);
+  });
   it("amending through the router refreshes the registry's copy of the law", async () => {
     const id = await mintPublic();
     const guestBefore = (await (await SELF.fetch("https://x/apps")).json()) as any;
@@ -148,12 +210,15 @@ describe("router", () => {
     // No token configured: the face is served exactly as it was written.
     expect(await serve("doctypeonly")).toBe(`<!doctype html><p>b</p>`);
   });
-  it("turns a thrown error into the error form, with the usual headers", async () => {
+  it("turns a thrown error into the generic error form, with the usual headers", async () => {
     // A key carrying a newline throws inside the Headers constructor on the way
     // to the bearer comparison: an unauthenticated caller reaching the boundary.
     const res = await SELF.fetch("https://x/login", { method: "POST", body: new URLSearchParams({ key: "a\nb" }) });
     expect(res.status).toBe(500);
-    expect((await res.json()) as any).toMatchObject({ ok: false });
+    // The boundary is reachable without credentials, so it must not echo the
+    // internal error string: it returns a fixed generic message (and logs the
+    // real one). The security headers still ride, through the same finalize path.
+    expect((await res.json()) as any).toEqual({ ok: false, error: "internal error" });
     expect(res.headers.get("Referrer-Policy")).toBe("no-referrer");
     expect(res.headers.get("X-Robots-Tag")).toBe("noindex");
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe("*");

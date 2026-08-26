@@ -50,17 +50,17 @@ mints; nothing a caller sends downstream of that can override it.
 | POST | `/apps` | owner, or anyone if `OPEN_MINT` is exactly `"true"` (then rate-limited, `PUBLIC_RL`, key `mint:<ip>`) | `{charter, state?}` -> `201 {ok, id, url}` |
 | GET | `/a/<id>` | gated by visibility | `{ok, charter}` as JSON, or an HTML landing page |
 | GET | `/a/<id>/qr` | gated by visibility | an SVG QR code of the app's own URL |
-| GET | `/a/<id>/state` | gated by visibility; `PUBLIC_RL` keyed on the request path | `{ok, state}` |
-| PUT | `/a/<id>/state` | owner (checked inside the App DO); `PUBLIC_RL` keyed on path | body is the new state document (seed) -> `{ok:true}` |
-| POST | `/a/<id>/rpc/<verb>` | gated by visibility, then the named verb's own `access` (`owner` verbs 404 to a guest); `PUBLIC_RL` keyed on path | body is the verb's input -> `{ok, result}` or `{ok:false, error}` |
+| GET | `/a/<id>/state` | gated by visibility; `PUBLIC_RL` keyed per caller and path | `{ok, state}` |
+| PUT | `/a/<id>/state` | owner (checked inside the App DO); `PUBLIC_RL` keyed per caller and path | body is the new state document (seed) -> `{ok:true}` |
+| POST | `/a/<id>/rpc/<verb>` | gated by visibility, then the named verb's own `access` (`owner` verbs 404 to a guest); `PUBLIC_RL` keyed per caller and path | body is the verb's input -> `{ok, result}` or `{ok:false, error}` |
 | PUT | `/a/<id>` | owner | body is a partial charter `{intent?, verbs?, law?, schedule?}` -> `{ok, verbs}` (amend) |
-| GET | `/a/<id>/history` | gated by visibility; `PUBLIC_RL` keyed on path | `{ok, history}`, up to `BUDGET.HISTORY` versions |
-| POST | `/a/<id>/rollback` | owner (checked inside the App DO); `PUBLIC_RL` keyed on path | body `{version}` -> `{ok, restored, verbs}` |
-| GET | `/a/<id>/export` | gated by visibility; `PUBLIC_RL` keyed on path | `{ok, export: {charter, state}}` |
+| GET | `/a/<id>/history` | gated by visibility; `PUBLIC_RL` keyed per caller and path | `{ok, history}`, up to `BUDGET.HISTORY` versions |
+| POST | `/a/<id>/rollback` | owner (checked inside the App DO); `PUBLIC_RL` keyed per caller and path | body `{version}` -> `{ok, restored, verbs}` |
+| GET | `/a/<id>/export` | gated by visibility; `PUBLIC_RL` keyed per caller and path | `{ok, export: {charter, state}}` |
 | POST | `/a/<id>/fork` | owner | body `{withState?}` -> `201 {ok, id, url}`, a new app with the same charter |
 | DELETE | `/a/<id>` | owner | retires the app -> `{ok:true}` |
 | GET | `/a/<id>/ws` | gated by visibility, checked twice (see §6) | WebSocket upgrade |
-| GET | `/f/<name>` | gated by the face's own visibility; `PUBLIC_RL` keyed on path | the face, an HTML document |
+| GET | `/f/<name>` | gated by the face's own visibility; `PUBLIC_RL` keyed per caller and path | the face, an HTML document |
 | PUT | `/f/<name>` | owner | body `{title, html, targets, visibility}` -> `{ok:true}` |
 | DELETE | `/f/<name>` | owner | removes the face -> `{ok:true}` |
 
@@ -73,13 +73,22 @@ Notes that don't fit in the table:
   concerned.
 - `OPTIONS` on any path answers `204` with CORS headers, before any credential is
   read. A preflight carries none.
-- `/init` exists only inside the App Durable Object, for the Worker's own use when
-  minting. No public route reaches it; the router refuses `/a/<id>/init` outright.
+- **Forwarding is an allow-list, not a default.** Under `/a/<id>`, the router
+  forwards only the DO suffixes in the table above: `GET /state`, `PUT /state`,
+  `POST /rpc/<verb>`, `GET /history`, `GET /export`, `POST /rollback`, and the
+  `/ws` upgrade. Everything else — `/init`, `/retire`, a raw `PUT /charter`,
+  `/manifest`, or any unrecognized suffix — is a `404` from the router and never
+  reaches the DO. Retire and amend are the router's own `DELETE /a/<id>` and `PUT
+  /a/<id>`, which also unregister and refresh the Registry; the raw DO routes
+  skip that upkeep, so they are not reachable. A `POST /rollback` is forwarded but
+  the router refreshes the Registry afterward, because a rollback can restore a
+  charter of different visibility or intent.
 - **Rate limiting.** `PUBLIC_RL` and `LOGIN_RL` are optional bindings.
   `src/index.ts`'s `limited()` returns `false` (never limited) if the binding is
-  absent. Where a key is `path` above, the bucket is the literal request path,
-  shared by every caller who hits that exact URL, not a per-caller bucket; `login:`
-  and `mint:` keys incorporate the caller's IP instead. Routes not listed as
+  absent. The `/a/<id>` and `/f/<name>` buckets marked above key on
+  `<caller IP>:<path>`, a per-caller-per-path bucket, so one abuser cannot exhaust
+  a shared path bucket for every other caller of a popular app or face; `login:`
+  and `mint:` keys incorporate the caller's IP alone. Routes not listed as
   rate-limited (mint as owner, amend, fork, retire, `GET /a/<id>`, `/qr`, `/ws`)
   enforce no limiter of their own.
 - **Indexing.** Responses are `X-Robots-Tag: noindex` by default. The manual, `GET
@@ -125,11 +134,14 @@ credentials: `POST /login` reuses `isOwner()` a second time to test the submitte
 form key against the one comparison in `auth.ts`, and a key value carrying a
 newline throws inside the `Headers` constructor during that check, after the
 request's own top-level `isOwner()` call has already completed; the sandbox can
-fail through its own WASM teardown rather than resolving) becomes
-`{ok:false, error: <message>}` at `500`,
-through the same `finalize()` path as every other response. That means even a
-crash still gets `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex`, and CORS
-headers; nothing escapes as a raw, headerless `workerd` 500.
+fail through its own WASM teardown rather than resolving) becomes a fixed
+`{ok:false, error:"internal error"}` at `500`, through the same `finalize()` path
+as every other response. The boundary is reachable without credentials, so it
+never echoes the internal error message to the caller: the real error is written
+to the Worker's log with `console.error` (visible in `wrangler tail`) and only the
+generic body goes on the wire. That means even a crash still gets
+`Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex`, and CORS headers; nothing
+escapes as a raw, headerless `workerd` 500, and nothing internal leaks in the body.
 
 ## 4. Budgets
 

@@ -83,7 +83,13 @@ export class App extends DurableObject<Env> {
   }
 
   private async rpc(charter: Charter, name: string, request: Request, owner: boolean): Promise<Response> {
-    const verb = charter.verbs[name];
+    // Own-property lookup only: `name` comes from the URL, and a plain object
+    // inherits `constructor`, `toString`, `__proto__` and the rest from
+    // Object.prototype. A bare `charter.verbs[name]` would resolve those to
+    // truthy members and fall through into checkInput on an undefined schema,
+    // throwing an unauthenticated 500. An own-property check makes every such
+    // name the ordinary 404 it should be.
+    const verb = Object.prototype.hasOwnProperty.call(charter.verbs, name) ? charter.verbs[name] : undefined;
     if (!verb) return err(404, `No verb "${name}". Available: ${Object.keys(charter.verbs).join(", ")}`);
     if (verb.access === "owner" && !owner) return err(404, `No verb "${name}".`);
     const input = (await request.json().catch(() => ({}))) as unknown;

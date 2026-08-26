@@ -98,7 +98,7 @@ Rate limits: a limiter binding on public invocation and face routes, and a stric
 
 Ported Farnsworth sandbox, QuickJS via WASM, fresh context per invocation, disposed after.
 
-Injected capabilities, exactly: `input`, `state`, `now` (ms epoch, fixed at invocation), `random()` (PRNG seeded per invocation from the platform CSPRNG), and `http.get`/`http.post` only when `allowedHosts` is non-empty. QuickJS stock globals (`Date`, `Math`, `JSON`) remain available; the docs say so and nothing pretends otherwise.
+Injected capabilities, exactly: `input`, `state`, `now` (ms epoch, fixed at invocation), `random()` (PRNG seeded per invocation from the platform CSPRNG), and `http.get`/`http.post` only when `allowedHosts` is non-empty. The ambient `Date` and `Math.random` globals are shadowed in the sandbox prelude to route to those same two sources (`Date.now()`/`new Date()` read the frozen `now`, `Math.random()` draws from the seeded PRNG), so a verb cannot observe wall-clock time or ambient entropy and the definition's reproducibility law holds. `JSON` and the other deterministic QuickJS globals remain available unchanged.
 
 safe-fetch, ported: HTTPS only, exact hostname allowlist, IP literals and internal hosts blocked, redirects refused, 8 s timeout, 1 MB response cap. String bodies sent verbatim, object bodies JSON-encoded.
 

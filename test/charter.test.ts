@@ -26,6 +26,14 @@ describe("checkCharter", () => {
   it("rejects verbs as array (must be object)", () => {
     expect(checkCharter({ ...good, verbs: [{ description: "d", inputSchema: { type: "object", properties: {} }, code: "return 1;", access: "public" }] })).toMatch(/verbs/);
   });
+  it("rejects reserved verb names that resolve through the prototype chain", () => {
+    // JSON.parse creates an own (not inherited) property for these names, which
+    // is exactly how a mint or amend body carrying them arrives.
+    for (const name of ["__proto__", "constructor", "prototype"]) {
+      const verbs = JSON.parse(`{"${name}": ${JSON.stringify(good.verbs.bump)}}`);
+      expect(checkCharter({ ...good, verbs }), name).toMatch(/reserved/);
+    }
+  });
 });
 
 describe("applyAmendment", () => {
@@ -37,5 +45,15 @@ describe("applyAmendment", () => {
     const out = applyAmendment(good as any, { law: { visibility: "public", allowedHosts: [] } });
     expect("charter" in out && out.charter.law.visibility).toBe("public");
     expect("error" in applyAmendment(good as any, { intent: "" })).toBe(true);
+  });
+  it("does not let a __proto__ verb pollute the map; rejects it cleanly", () => {
+    // A patch carrying a __proto__ verb (as it would arrive from request.json()).
+    const patch = JSON.parse(`{"verbs": {"__proto__": ${JSON.stringify(good.verbs.bump)}}}`);
+    const out = applyAmendment(good as any, patch);
+    expect("error" in out).toBe(true);
+    if ("error" in out) expect(out.error).toMatch(/reserved/);
+    // And the existing verbs are untouched: no silent no-op that pretended success.
+    const ok = applyAmendment(good as any, { verbs: { bump: good.verbs.bump } });
+    expect("charter" in ok && Object.keys(ok.charter.verbs)).toEqual(["bump"]);
   });
 });

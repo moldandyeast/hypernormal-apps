@@ -100,9 +100,15 @@ async function register(env: Env, id: string, charter: Charter): Promise<void> {
 
 // Mint: the one act that creates an app. The charter is validated here so a bad
 // charter never costs a Durable Object; the DO validates it again on init.
-async function mintApp(env: Env, origin: string, charter: unknown, state: unknown): Promise<Response> {
+async function mintApp(env: Env, origin: string, charter: unknown, state: unknown, forceNoHosts = false): Promise<Response> {
   const invalid = checkCharter(charter);
   if (invalid) return json({ ok: false, error: invalid }, 400);
+  // A guest mint (permitted only because OPEN_MINT is on) authors the whole
+  // charter, law.allowedHosts included, and ctx.http would then give an
+  // anonymous author GET/POST to any host they named — an open HTTPS proxy
+  // attributable to this installation's Cloudflare account. Force it empty; the
+  // owner can always amend it afterward. An owner's own mint is left untouched.
+  if (forceNoHosts) (charter as Charter).law.allowedHosts = [];
   const objectId = env.APP.newUniqueId();
   const id = objectId.toString();
   const init = await env.APP.get(objectId).fetch(new Request("https://do/init", {
@@ -141,8 +147,12 @@ export default {
       // finalize() exists to guarantee. Reachable without credentials — a
       // header value carrying a newline throws inside the Headers constructor,
       // and the sandbox can fail through its own WASM teardown rather than
-      // resolving — so the boundary is a route like any other.
-      res = json({ ok: false, error: e instanceof Error ? e.message : "internal error" }, 500);
+      // resolving — so the boundary is a route like any other. Log the real
+      // error so the operator can debug it in `wrangler tail` (this is the one
+      // place an internal failure surfaces), and return a fixed generic message:
+      // the boundary is unauthenticated, so it must never echo e.message.
+      console.error(e);
+      res = json({ ok: false, error: "internal error" }, 500);
     }
     return finalize(res, res.headers.get(INDEX_MARK) === "1");
   },
@@ -211,7 +221,9 @@ async function handle(request: Request, env: Env): Promise<Response> {
       }
       const body = (await request.json().catch(() => null)) as { charter?: unknown; state?: unknown } | null;
       if (!body) return json({ ok: false, error: "Body must be JSON: {charter, state?} — the shape GET /a/<id>/export returns." }, 400);
-      return mintApp(env, url.origin, body.charter, body.state);
+      // A guest mint (owner false, reachable only under OPEN_MINT) may not set
+      // allowedHosts; an owner mint keeps whatever it specified.
+      return mintApp(env, url.origin, body.charter, body.state, !owner);
     }
   }
 
@@ -289,8 +301,39 @@ async function handle(request: Request, env: Env): Promise<Response> {
       return stub.fetch(upgrade);
     }
 
-    if (await limited(env.PUBLIC_RL, path)) return json({ ok: false, error: "Too many requests; slow down." }, 429);
-    return toApp(stub, rest || "/charter", request, owner);
+    // Explicit allow-list of forwardable DO suffixes. The forward-by-default this
+    // replaces exposed raw DO routes that skip the registry upkeep the router's
+    // own wrappers do: POST /retire reached App.retire without unregistering (the
+    // app stayed in GET /apps), and PUT /charter reached App.amend without
+    // refreshing the registry's cached visibility (a public->private amend left
+    // the app still listed as public). Retire and amend are the router's own
+    // DELETE /a/<id> and PUT /a/<id> above; /init, /retire, raw /charter,
+    // /manifest, and anything unrecognized are not reachable here. Seed and
+    // rollback have no router wrapper and are forwarded, rollback with a registry
+    // refresh below because it can restore a charter of different visibility.
+    const forwardable =
+      (method === "GET" && (rest === "/state" || rest === "/history" || rest === "/export")) ||
+      (method === "PUT" && rest === "/state") ||
+      (method === "POST" && rest.startsWith("/rpc/")) ||
+      (method === "POST" && rest === "/rollback");
+    if (!forwardable) return gone("No app lives at this URL.");
+
+    // Per-caller-per-path: keyed on the pathname alone, one abuser of a popular
+    // app shares (and exhausts) a single bucket for every legitimate user of it,
+    // and evades their own cap by rotating app ids. Key on the caller's IP too,
+    // as the login and mint limiters above already do.
+    if (await limited(env.PUBLIC_RL, `${request.headers.get("CF-Connecting-IP") ?? "unknown"}:${path}`)) {
+      return json({ ok: false, error: "Too many requests; slow down." }, 429);
+    }
+    const forwarded = await toApp(stub, rest, request, owner);
+    // A rollback can restore a charter whose visibility or intent differs from the
+    // current one; refresh the registry's cache the same way an amend does, so a
+    // rollback to private is not left listed as public in GET /apps.
+    if (rest === "/rollback" && forwarded.ok) {
+      const restored = await readCharter(stub);
+      if (restored) await register(env, id, restored);
+    }
+    return forwarded;
   }
 
   const face = path.match(/^\/f\/([^/]+)$/);
@@ -303,7 +346,11 @@ async function handle(request: Request, env: Env): Promise<Response> {
       return registry(env).fetch(new Request(`https://do/faces/${name}`, { method, body }));
     }
     if (method === "GET") {
-      if (await limited(env.PUBLIC_RL, path)) return json({ ok: false, error: "Too many requests; slow down." }, 429);
+      // Per-caller-per-path, for the same reason as the app routes above: a
+      // path-only bucket lets one caller lock a popular face out for everyone.
+      if (await limited(env.PUBLIC_RL, `${request.headers.get("CF-Connecting-IP") ?? "unknown"}:${path}`)) {
+        return json({ ok: false, error: "Too many requests; slow down." }, 429);
+      }
       const res = await registry(env).fetch(new Request(`https://do/faces/${name}`));
       if (!res.ok) return gone(`No face named "${name}".`);
       const { face: rec } = (await res.json()) as { face: { html: string; visibility: string } };

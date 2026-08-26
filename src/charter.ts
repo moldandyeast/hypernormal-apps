@@ -3,7 +3,12 @@ import { checkSchema } from "./schema";
 import { nextCronTime } from "./schedule";
 
 export const VERB_NAME = /^[a-zA-Z0-9_-]{1,64}$/;
-const VISIBILITIES = ["private", "unlisted", "public"];
+// Names that match VERB_NAME but resolve to Object.prototype members, so a
+// verb carrying one would be reachable through the prototype chain by callers
+// who never authored it and would let a JSON `__proto__` key pollute the verb
+// map. Rejected uniformly at mint and amend.
+const RESERVED_VERB_NAMES = ["__proto__", "constructor", "prototype"];
+export const VISIBILITIES = ["private", "unlisted", "public"];
 const ACCESSES = ["owner", "public"];
 
 export function checkCharter(c: unknown): string | null {
@@ -13,6 +18,7 @@ export function checkCharter(c: unknown): string | null {
   if (typeof ch.verbs !== "object" || ch.verbs === null || Array.isArray(ch.verbs)) return "verbs (object mapping name to verb) is required";
   for (const [name, v] of Object.entries(ch.verbs as Record<string, unknown>)) {
     if (!VERB_NAME.test(name)) return `verb name "${name}" must match ${VERB_NAME}`;
+    if (RESERVED_VERB_NAMES.includes(name)) return `verb name "${name}" is reserved and cannot be used`;
     const err = checkVerb(v);
     if (err) return `verbs.${name}: ${err}`;
   }
@@ -22,7 +28,7 @@ export function checkCharter(c: unknown): string | null {
   if (!Array.isArray(law.allowedHosts) || law.allowedHosts.some((h) => typeof h !== "string")) return "law.allowedHosts must be a list of hostnames";
   if (ch.schedule !== undefined) {
     const s = ch.schedule as Record<string, unknown>;
-    if (typeof s.cron !== "string" || typeof s.verb !== "string" || !(s.verb in (ch.verbs as object)))
+    if (typeof s.cron !== "string" || typeof s.verb !== "string" || !Object.prototype.hasOwnProperty.call(ch.verbs, s.verb))
       return "schedule must be {cron, verb} naming an existing verb";
     try {
       nextCronTime(s.cron, Date.now());
@@ -55,8 +61,17 @@ export function applyAmendment(current: Charter, patch: unknown): { charter: Cha
   if (p.verbs !== undefined) {
     if (typeof p.verbs !== "object" || p.verbs === null || Array.isArray(p.verbs)) return { error: "verbs must be an object; null value deletes a verb" };
     for (const [name, v] of Object.entries(p.verbs as Record<string, unknown>)) {
-      if (v === null) delete next.verbs[name];
-      else next.verbs[name] = v as Verb;
+      // Own-property-safe merge: a literal `next.verbs["__proto__"] = v` would
+      // invoke Object.prototype's __proto__ setter and silently pollute the map
+      // instead of adding a verb. defineProperty sets a real own property, so a
+      // reserved name survives as data and is rejected by checkCharter below
+      // rather than vanishing into the prototype; the delete path only touches
+      // own properties for the same reason.
+      if (v === null) {
+        if (Object.prototype.hasOwnProperty.call(next.verbs, name)) delete next.verbs[name];
+      } else {
+        Object.defineProperty(next.verbs, name, { value: v as Verb, writable: true, enumerable: true, configurable: true });
+      }
     }
   }
   const err = checkCharter(next);

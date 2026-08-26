@@ -27,6 +27,25 @@ describe("registry", () => {
     expect((await j("DELETE", "/faces/list")).status).toBe(200);
     expect((await j("GET", "/faces/list")).status).toBe(404);
   });
+  it("validates face visibility against the enum, failing closed on a typo", async () => {
+    const base = { title: "T", html: "<p>x</p>", targets: [] as string[] };
+    // A typo must be rejected, not stored: the /f gate serves everything that is
+    // not exactly "private", so an unvalidated "privat" would fail open.
+    const bad = await j("PUT", "/faces/typo", { ...base, visibility: "privat" });
+    expect(bad.status).toBe(400);
+    expect(((await bad.json()) as any).error).toMatch(/visibility/);
+    // A stored face is never left behind by the rejected write.
+    expect((await j("GET", "/faces/typo")).status).toBe(404);
+    for (const visibility of ["private", "unlisted", "public"]) {
+      expect((await j("PUT", `/faces/ok-${visibility}`, { ...base, visibility })).status).toBe(200);
+    }
+  });
+  it("rejects a non-array targets with a 400", async () => {
+    const bad = await j("PUT", "/faces/badtargets", { title: "T", html: "<p>x</p>", targets: "a1", visibility: "public" });
+    expect(bad.status).toBe(400);
+    expect(((await bad.json()) as any).error).toMatch(/targets/);
+    expect((await j("GET", "/faces/badtargets")).status).toBe(404);
+  });
   it("enforces the face budget in UTF-8 bytes, not JS string length", async () => {
     // Each "🎉" is 2 UTF-16 code units (JS .length) but 4 UTF-8 bytes: 200,000 of them is
     // 400,000 in .length (under BUDGET.FACE=512*1024=524288) but 800,000 UTF-8 bytes (over budget).

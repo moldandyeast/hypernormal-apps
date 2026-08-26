@@ -1,6 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { BUDGET, type Env } from "./types";
-import { VERB_NAME } from "./charter";
+import { VERB_NAME, VISIBILITIES } from "./charter";
 
 const err = (status: number, error: string) => Response.json({ ok: false, error }, { status });
 
@@ -41,10 +41,19 @@ export class Registry extends DurableObject<Env> {
       if (m === "PUT") {
         const b = (await request.json()) as { title: string; html: string; targets: string[]; visibility: string };
         if (typeof b.html !== "string" || new TextEncoder().encode(b.html).length > BUDGET.FACE) return err(400, `face budget exceeded: over ${BUDGET.FACE} bytes`);
+        // A face carries a visibility with the same values and meaning as an
+        // app's, and the /f serving gate admits everything that is not exactly
+        // "private" — so an unvalidated typo like "privat" fails OPEN, serving a
+        // face the owner meant to hide to the whole world. Validate the enum, and
+        // the targets shape, and reject anything else with a clean 400.
+        const visibility = b.visibility ?? "unlisted";
+        if (!VISIBILITIES.includes(visibility)) return err(400, `visibility must be one of ${VISIBILITIES.join(", ")}`);
+        const targets = b.targets ?? [];
+        if (!Array.isArray(targets) || targets.some((t) => typeof t !== "string")) return err(400, "targets must be a list of app id strings");
         sql.exec(
           "INSERT INTO faces (name, title, html, targets, visibility, updated, seq) VALUES (?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(seq),0)+1 FROM faces)) " +
           "ON CONFLICT(name) DO UPDATE SET title=excluded.title, html=excluded.html, targets=excluded.targets, visibility=excluded.visibility, updated=excluded.updated, seq=(SELECT COALESCE(MAX(seq),0)+1 FROM faces)",
-          name, b.title ?? name, b.html, JSON.stringify(b.targets ?? []), b.visibility ?? "unlisted", Date.now()
+          name, b.title ?? name, b.html, JSON.stringify(targets), visibility, Date.now()
         );
         return Response.json({ ok: true });
       }

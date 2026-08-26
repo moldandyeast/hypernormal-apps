@@ -154,7 +154,7 @@ A complete charter, small enough to read in full:
 ${EXAMPLE_CHARTER}
 \`\`\`
 
-Verb names match \`[a-zA-Z0-9_-]{1,64}\`. Code runs in a sandbox that sees exactly \`ctx.input\`, \`ctx.state\`, a clock fixed at invocation time, a seeded random source, and — only when allowedHosts is non-empty — a blocking \`ctx.http.get\`/\`ctx.http.post\` restricted to those hosts. It cannot import, cannot await, cannot see another app. Mutate \`ctx.state\` and it persists; whatever you return goes to the caller.
+Verb names match \`[a-zA-Z0-9_-]{1,64}\`. Code runs in a sandbox that sees exactly \`ctx.input\`, \`ctx.state\`, \`ctx.now\` (a clock fixed at invocation time), \`ctx.random()\` (a seeded random source), and, only when allowedHosts is non-empty, a blocking \`ctx.http.get\`/\`ctx.http.post\` restricted to those hosts. The ambient \`Date\` and \`Math.random\` globals are routed to those same two sources: \`Date.now()\` and \`new Date()\` read \`ctx.now\`, and \`Math.random()\` draws from the same seeded PRNG as \`ctx.random()\`. Both are safe to use and deterministic, not a second live source of time or entropy. It cannot import, cannot await, cannot see another app. Mutate \`ctx.state\` and it persists; whatever you return goes to the caller.
 
 ## Everything else
 

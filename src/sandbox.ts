@@ -44,10 +44,14 @@ export async function execute(
         }`
       : `undefined`;
     // Honest capabilities the host (unlike the guest) genuinely has: a real clock
-    // and CSPRNG. We do NOT expose Date/Math.random; we inject two controlled
-    // functions. `now` is captured once at invocation; `random()` is a mulberry32
+    // and CSPRNG. `now` is captured once at invocation; `random()` is a mulberry32
     // PRNG seeded per-invocation from crypto.getRandomValues so guests get fresh,
-    // non-guessable randomness without an ambient source.
+    // non-guessable randomness without an ambient source. The ambient globals a
+    // verb could otherwise reach — `Date` and `Math.random` — are shadowed in the
+    // prelude below to route to these same injected sources, so the definition's
+    // law holds: with no allowedHosts a verb is a pure function of
+    // (state, input, clock, seed) and cannot observe wall-clock time or ambient
+    // entropy. See the prelude comment for why the real Date is unrecoverable.
     const now = Date.now();
     const seed = crypto.getRandomValues(new Uint32Array(1))[0] >>> 0;
     const program = `
@@ -59,6 +63,31 @@ export async function execute(
         t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
       }
+      // Route the ambient globals a verb could otherwise reach to the same
+      // injected sources ctx already carries. Only Math.random is reassigned
+      // (Math.imul, which __random depends on, is left intact). Date is replaced
+      // by a Proxy over the real Date that answers now()/new Date() from the
+      // frozen __now. The real constructor is trapped as RealDate, a local of the
+      // shadowing IIFE the guest IIFE below cannot close over (there is no
+      // top-level binding to it), and every path back to it through an instance
+      // — new Date().constructor, Date.prototype.constructor — is redirected to
+      // the shadow. So a verb genuinely cannot recover a live wall clock: not
+      // through a closure, not through eval (Date resolves to this shadow in
+      // global scope), not through the prototype chain.
+      Math.random = __random;
+      Date = (function () {
+        const RealDate = Date;
+        const Shadow = new Proxy(RealDate, {
+          apply() { return new RealDate(__now).toString(); },
+          construct(target, args) { return args.length ? Reflect.construct(RealDate, args) : new RealDate(__now); },
+          get(target, prop, receiver) {
+            if (prop === "now") return function () { return __now; };
+            return Reflect.get(target, prop, receiver);
+          },
+        });
+        Object.defineProperty(RealDate.prototype, "constructor", { value: Shadow, writable: true, configurable: true });
+        return Shadow;
+      })();
       const ctx = {
         input: ${JSON.stringify(input ?? {})},
         state: ${JSON.stringify(state ?? {})},
