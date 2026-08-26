@@ -35,4 +35,30 @@ describe("registry", () => {
     const face = { title: "Emoji", html, targets: [], visibility: "public" };
     expect((await j("PUT", "/faces/emoji", face)).status).toBe(400);
   });
+  it("orders GET /apps by a monotonic sequence, not by Date.now() (which can tie even across back-to-back awaited calls)", async () => {
+    // The original flake reproduced with nothing more exotic than two sequential, awaited
+    // POST /apps/register calls (see the first test above): Workers coarsens Date.now() during
+    // synchronous execution, so two DO round trips issued back-to-back in a fast test harness
+    // can still land in the same millisecond. Registering many apps in a tight sequential loop
+    // -- each fully awaited before the next starts, so there is no concurrent-dispatch reordering
+    // to confound the result -- reliably reproduces that same-millisecond collision opportunity.
+    // seq (not updated) must be the sole tie-breaker, so the response must reflect exact
+    // registration order regardless of what Date.now() returned for each insert.
+    const ids = Array.from({ length: 25 }, (_, i) => `s${i}`);
+    for (const id of ids) {
+      await j("POST", "/apps/register", { id, intent: id, visibility: "public" });
+    }
+    const list = (await (await j("GET", "/apps")).json()) as any;
+    const ours = list.apps.map((a: any) => a.id).filter((id: string) => ids.includes(id));
+    expect(ours).toEqual([...ids].reverse());
+  });
+  it("orders GET /faces by a monotonic sequence too, for the same reason", async () => {
+    const names = Array.from({ length: 25 }, (_, i) => `t${i}`);
+    for (const name of names) {
+      await j("PUT", `/faces/${name}`, { title: name, html: "<p>x</p>", targets: [], visibility: "public" });
+    }
+    const list = (await (await j("GET", "/faces")).json()) as any;
+    const ours = list.faces.map((f: any) => f.name).filter((name: string) => names.includes(name));
+    expect(ours).toEqual([...names].reverse());
+  });
 });

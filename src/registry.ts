@@ -7,8 +7,8 @@ const err = (status: number, error: string) => Response.json({ ok: false, error 
 export class Registry extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
-    ctx.storage.sql.exec(`CREATE TABLE IF NOT EXISTS apps (id TEXT PRIMARY KEY, intent TEXT, visibility TEXT, updated INTEGER);
-      CREATE TABLE IF NOT EXISTS faces (name TEXT PRIMARY KEY, title TEXT, html TEXT, targets TEXT, visibility TEXT, updated INTEGER);`);
+    ctx.storage.sql.exec(`CREATE TABLE IF NOT EXISTS apps (id TEXT PRIMARY KEY, intent TEXT, visibility TEXT, updated INTEGER, seq INTEGER);
+      CREATE TABLE IF NOT EXISTS faces (name TEXT PRIMARY KEY, title TEXT, html TEXT, targets TEXT, visibility TEXT, updated INTEGER, seq INTEGER);`);
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -19,7 +19,11 @@ export class Registry extends DurableObject<Env> {
 
     if (m === "POST" && path === "/apps/register") {
       const b = (await request.json()) as { id: string; intent: string; visibility: string };
-      sql.exec("INSERT INTO apps (id, intent, visibility, updated) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET intent=excluded.intent, visibility=excluded.visibility, updated=excluded.updated", b.id, b.intent, b.visibility, Date.now());
+      sql.exec(
+        "INSERT INTO apps (id, intent, visibility, updated, seq) VALUES (?, ?, ?, ?, (SELECT COALESCE(MAX(seq),0)+1 FROM apps)) " +
+        "ON CONFLICT(id) DO UPDATE SET intent=excluded.intent, visibility=excluded.visibility, updated=excluded.updated, seq=(SELECT COALESCE(MAX(seq),0)+1 FROM apps)",
+        b.id, b.intent, b.visibility, Date.now()
+      );
       return Response.json({ ok: true });
     }
     if (m === "POST" && path === "/apps/unregister") {
@@ -28,7 +32,7 @@ export class Registry extends DurableObject<Env> {
       return Response.json({ ok: true });
     }
     if (m === "GET" && path === "/apps") {
-      const apps = sql.exec("SELECT id, intent, visibility, updated FROM apps ORDER BY updated DESC").toArray();
+      const apps = sql.exec("SELECT id, intent, visibility, updated FROM apps ORDER BY seq DESC").toArray();
       return Response.json({ ok: true, apps });
     }
     if (path.startsWith("/faces/")) {
@@ -37,11 +41,15 @@ export class Registry extends DurableObject<Env> {
       if (m === "PUT") {
         const b = (await request.json()) as { title: string; html: string; targets: string[]; visibility: string };
         if (typeof b.html !== "string" || new TextEncoder().encode(b.html).length > BUDGET.FACE) return err(400, `face budget exceeded: over ${BUDGET.FACE} bytes`);
-        sql.exec("INSERT INTO faces (name, title, html, targets, visibility, updated) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(name) DO UPDATE SET title=excluded.title, html=excluded.html, targets=excluded.targets, visibility=excluded.visibility, updated=excluded.updated", name, b.title ?? name, b.html, JSON.stringify(b.targets ?? []), b.visibility ?? "unlisted", Date.now());
+        sql.exec(
+          "INSERT INTO faces (name, title, html, targets, visibility, updated, seq) VALUES (?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(seq),0)+1 FROM faces)) " +
+          "ON CONFLICT(name) DO UPDATE SET title=excluded.title, html=excluded.html, targets=excluded.targets, visibility=excluded.visibility, updated=excluded.updated, seq=(SELECT COALESCE(MAX(seq),0)+1 FROM faces)",
+          name, b.title ?? name, b.html, JSON.stringify(b.targets ?? []), b.visibility ?? "unlisted", Date.now()
+        );
         return Response.json({ ok: true });
       }
       if (m === "GET") {
-        const row = sql.exec("SELECT * FROM faces WHERE name = ?", name).toArray()[0];
+        const row = sql.exec("SELECT name, title, html, targets, visibility, updated FROM faces WHERE name = ?", name).toArray()[0];
         if (!row) return err(404, `No face named "${name}".`);
         return Response.json({ ok: true, face: { ...row, targets: JSON.parse(row.targets as string) } });
       }
@@ -51,7 +59,7 @@ export class Registry extends DurableObject<Env> {
       }
     }
     if (m === "GET" && path === "/faces") {
-      const faces = sql.exec("SELECT name, title, targets, visibility, updated FROM faces ORDER BY updated DESC").toArray()
+      const faces = sql.exec("SELECT name, title, targets, visibility, updated FROM faces ORDER BY seq DESC").toArray()
         .map((f) => ({ ...f, targets: JSON.parse(f.targets as string) }));
       return Response.json({ ok: true, faces });
     }
