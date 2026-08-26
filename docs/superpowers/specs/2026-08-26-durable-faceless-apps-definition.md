@@ -95,7 +95,7 @@ Acts change what exists. Invocations change state; acts change apps.
 
 ## Watching
 
-Anyone the law admits may hold a WebSocket to an app. On connect, the watcher receives the full state. After every state change, every watcher receives the full new state. Watchers may relay small ephemeral signals to each other through the app (cursors, presence). A signal is bounded in size. These signals are never stored and never enter state.
+Anyone the law admits may hold a WebSocket to an app. On connect, the watcher receives the full state. After every state change, every watcher receives the full new state. After every amendment or rollback, every watcher receives the new charter. Watchers may relay small ephemeral signals to each other through the app (cursors, presence). A signal is bounded in size. These signals are never stored and never enter state.
 
 Faces trust the socket: a face hydrates from the state message it receives on connect, not from a separate read. The socket's state is the single source of truth for every face.
 
