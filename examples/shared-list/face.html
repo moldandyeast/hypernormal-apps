@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Shared list</title>
+<ul id="items"></ul>
+<form id="f"><input id="t" placeholder="add an item"><button>Add</button></form>
+<script type="module">
+  import { connect } from "/runtime.js";
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  const app = await connect(new URLSearchParams(location.search).get("app"));
+
+  app.state.watch((s) => {
+    document.getElementById("items").innerHTML = (s.items ?? [])
+      .map((i) => `<li data-id="${esc(i.id)}" style="${i.done ? "text-decoration:line-through" : ""}">${esc(i.text)}</li>`)
+      .join("");
+  });
+
+  document.getElementById("f").onsubmit = async (e) => {
+    e.preventDefault();
+    await app.verbs.add({ text: document.getElementById("t").value });
+    e.target.reset();
+  };
+
+  document.getElementById("items").onclick = (e) => {
+    const id = e.target.dataset.id;
+    if (id) app.verbs.toggle({ id });
+  };
+</script>

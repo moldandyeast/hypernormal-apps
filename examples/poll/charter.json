@@ -1,0 +1,30 @@
+{
+  "intent": "A single yes/no poll. State is exactly {question: string, options: {yes: number, no: number}, open: boolean}. An app minted with no seed state behaves as if question is \"\" and options is {yes: 0, no: 0}; every verb normalizes a missing options or open field the first time it runs, treating an unset open as true (open by default) so a freshly minted poll accepts votes immediately. vote({option: \"yes\" or \"no\"}) is public: if the poll is closed (open is false) it does not change state and returns {ok: false, reason: string} explaining why; otherwise it increments options[option] by one and returns {ok: true, options} with the tally after the vote. close() is owner-only: it sets open to false, after which every vote call returns {ok:false, reason} without changing the tally; it returns true. reopen() is owner-only: it sets open back to true so votes are accepted again; it returns true. The question text itself is set by the owner when minting or seeding state (via PUT /state) and no verb changes it; a face should display state.question as-is.",
+  "verbs": {
+    "vote": {
+      "description": "Cast one vote for \"yes\" or \"no\". Rejected without changing state if the poll is closed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "option": { "type": "string", "description": "Which side to vote for.", "enum": ["yes", "no"] }
+        },
+        "required": ["option"]
+      },
+      "code": "ctx.state.options = ctx.state.options ?? { yes: 0, no: 0 }; if (ctx.state.open === undefined) ctx.state.open = true; if (!ctx.state.open) return { ok: false, reason: \"poll is closed\" }; ctx.state.options[ctx.input.option] = (ctx.state.options[ctx.input.option] ?? 0) + 1; return { ok: true, options: ctx.state.options };",
+      "access": "public"
+    },
+    "close": {
+      "description": "Close the poll so no further votes are accepted. Owner only.",
+      "inputSchema": { "type": "object", "properties": {} },
+      "code": "ctx.state.open = false; return true;",
+      "access": "owner"
+    },
+    "reopen": {
+      "description": "Reopen the poll so votes are accepted again. Owner only.",
+      "inputSchema": { "type": "object", "properties": {} },
+      "code": "ctx.state.open = true; return true;",
+      "access": "owner"
+    }
+  },
+  "law": { "visibility": "unlisted", "allowedHosts": [] }
+}

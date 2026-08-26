@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Pulse</title>
+<p>Count: <span id="count">0</span></p>
+<p>Last beat: <span id="last">never</span></p>
+<button id="beat">Beat now</button>
+<button id="refresh">Read (no beat)</button>
+<pre id="out"></pre>
+<script type="module">
+  import { connect } from "/runtime.js";
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  function fmt(ms) {
+    return ms == null ? "never" : new Date(ms).toISOString();
+  }
+
+  const app = await connect(new URLSearchParams(location.search).get("app"));
+
+  app.state.watch((s) => {
+    document.getElementById("count").innerHTML = esc(String(s.count ?? 0));
+    document.getElementById("last").innerHTML = esc(fmt(s.lastBeatAt));
+  });
+
+  document.getElementById("beat").onclick = () => app.verbs.beat({});
+  document.getElementById("refresh").onclick = async () => {
+    // read() does not change state; its result comes back only to this caller,
+    // unlike beat()'s effect, which every watcher sees via state.watch.
+    const result = await app.verbs.read({});
+    document.getElementById("out").innerHTML = esc(JSON.stringify(result));
+  };
+</script>

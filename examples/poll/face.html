@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Poll</title>
+<h1 id="q"></h1>
+<p id="status"></p>
+<button id="yes">Yes (<span id="yesCount">0</span>)</button>
+<button id="no">No (<span id="noCount">0</span>)</button>
+<p id="msg"></p>
+<script type="module">
+  import { connect } from "/runtime.js";
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  const app = await connect(new URLSearchParams(location.search).get("app"));
+
+  app.state.watch((s) => {
+    const open = s.open !== false;
+    document.getElementById("q").innerHTML = esc(s.question ?? "(no question set)");
+    document.getElementById("status").innerHTML = open ? "open" : "closed";
+    document.getElementById("yesCount").textContent = String((s.options ?? {}).yes ?? 0);
+    document.getElementById("noCount").textContent = String((s.options ?? {}).no ?? 0);
+    document.getElementById("yes").disabled = !open;
+    document.getElementById("no").disabled = !open;
+  });
+
+  async function vote(option) {
+    const result = await app.verbs.vote({ option });
+    document.getElementById("msg").innerHTML = result.ok ? "" : `Vote rejected: ${esc(result.reason ?? "unknown reason")}`;
+  }
+
+  document.getElementById("yes").onclick = () => vote("yes");
+  document.getElementById("no").onclick = () => vote("no");
+</script>

@@ -1,0 +1,19 @@
+{
+  "intent": "A self-beating counter: it advances on its own, once an hour, with no caller. State is exactly {count: number, lastBeatAt: number|null}. A freshly minted pulse, before any beat, behaves as count 0 and lastBeatAt null. The platform invokes the beat verb every hour on the hour (cron \"0 * * * *\", UTC) with no caller present, exactly as if a guest had called it with {}; this is documented so a stranger reading the charter is not surprised to see count climb between their own visits. beat({}) is public — anyone holding the link may also beat it by hand between scheduled ticks — and increments count by one, sets lastBeatAt to the current time (milliseconds since epoch), and returns the new count. read({}) is public and returns the full state {count, lastBeatAt} unchanged; it exists so a caller can check the pulse without causing one.",
+  "verbs": {
+    "beat": {
+      "description": "Advance the pulse by one and record when it happened.",
+      "inputSchema": { "type": "object", "properties": {} },
+      "code": "ctx.state.count = (ctx.state.count ?? 0) + 1; ctx.state.lastBeatAt = ctx.now; return ctx.state.count;",
+      "access": "public"
+    },
+    "read": {
+      "description": "Return the current count and the time of the last beat without advancing anything.",
+      "inputSchema": { "type": "object", "properties": {} },
+      "code": "return { count: ctx.state.count ?? 0, lastBeatAt: ctx.state.lastBeatAt ?? null };",
+      "access": "public"
+    }
+  },
+  "law": { "visibility": "unlisted", "allowedHosts": [] },
+  "schedule": { "cron": "0 * * * *", "verb": "beat" }
+}
