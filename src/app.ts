@@ -36,6 +36,14 @@ export class App extends DurableObject<Env> {
     if (request.method === "GET" && path === "/export") return Response.json({ ok: true, export: { charter, state: await this.readState() } });
     if (request.method === "POST" && path === "/retire") return this.retire(owner);
 
+    if (path === "/ws") {
+      if (request.headers.get("Upgrade") !== "websocket") return err(426, "Expected a WebSocket upgrade.");
+      const pair = new WebSocketPair();
+      this.ctx.acceptWebSocket(pair[1]);
+      pair[1].send(JSON.stringify({ type: "state", state: await this.readState() }));
+      return new Response(null, { status: 101, webSocket: pair[0] });
+    }
+
     return err(404, `No route for ${request.method} ${path} on this app.`);
   }
 
@@ -139,8 +147,8 @@ export class App extends DurableObject<Env> {
     await this.ctx.storage.put("history", history);
   }
 
-  protected broadcastCharter(_charter: Charter): void {
-    // Sockets arrive in Task 8.
+  protected broadcastCharter(charter: Charter): void {
+    this.broadcast(JSON.stringify({ type: "charter", charter }));
   }
 
   private makeHostHttp(allowedHosts: string[]): HostHttp {
@@ -163,7 +171,29 @@ export class App extends DurableObject<Env> {
     return this.ctx.storage.get("state").then((s) => s ?? {});
   }
 
-  protected broadcastState(_state: unknown): void {
-    // Sockets arrive in Task 8; this hook exists so rpc/seed call sites do not change.
+  protected broadcastState(state: unknown): void {
+    this.broadcast(JSON.stringify({ type: "state", state }));
+  }
+
+  private broadcast(payload: string): void {
+    for (const ws of this.ctx.getWebSockets()) {
+      try { ws.send(payload); } catch { /* a closing socket is not our problem */ }
+    }
+  }
+
+  async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
+    if (typeof message !== "string") return;
+    if (message === "ping") { ws.send(JSON.stringify({ type: "pong" })); return; }
+    if (message.length > BUDGET.SIGNAL) return;
+    let parsed: unknown;
+    try { parsed = JSON.parse(message); } catch { return; }
+    if (typeof parsed !== "object" || parsed === null || (parsed as { type?: string }).type !== "presence") return;
+    for (const other of this.ctx.getWebSockets()) {
+      if (other !== ws) { try { other.send(message); } catch { /* ignore */ } }
+    }
+  }
+
+  async webSocketClose(ws: WebSocket): Promise<void> {
+    try { ws.close(); } catch { /* already closed */ }
   }
 }
