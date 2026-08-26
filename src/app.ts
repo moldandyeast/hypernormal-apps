@@ -124,8 +124,10 @@ export class App extends DurableObject<Env> {
 
   private async retire(owner: boolean): Promise<Response> {
     if (!owner) return err(404, "No app lives at this URL.");
-    await this.ctx.storage.deleteAll();
-    return Response.json({ ok: true });
+    return this.runSerial(async () => {
+      await this.ctx.storage.deleteAll();
+      return Response.json({ ok: true });
+    });
   }
 
   private async pushHistory(charter: Charter): Promise<void> {
