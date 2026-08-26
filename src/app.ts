@@ -36,6 +36,8 @@ export class App extends DurableObject<Env> {
 
   private async init(request: Request, owner: boolean): Promise<Response> {
     if (!owner) return err(404, "No app lives at this URL.");
+    const existing = await this.ctx.storage.get<Charter>("charter");
+    if (existing) return err(400, "This app already exists; init cannot be called twice.");
     const body = (await request.json().catch(() => null)) as { charter?: unknown; state?: unknown } | null;
     if (!body) return err(400, "Body must be JSON: {charter, state?}.");
     const invalid = checkCharter(body.charter);
@@ -72,6 +74,8 @@ export class App extends DurableObject<Env> {
       const hostHttp = charter.law.allowedHosts.length > 0 ? this.makeHostHttp(charter.law.allowedHosts) : undefined;
       const out = await execute(verb.code, state, input, { hostHttp });
       if (!out.ok) return err(400, `${out.error} (verb "${name}"). Fix the code and amend the charter to heal the app.`);
+      if (out.state === undefined)
+        return err(400, `verb "${name}" left state undefined; a verb must always leave ctx.state as an object`);
       if (byteLength(out.result) > BUDGET.RESULT) return err(400, "result budget exceeded");
       if (byteLength(out.state) > BUDGET.STATE) return err(400, "state budget exceeded; state is unchanged");
       await this.ctx.storage.put("state", out.state);

@@ -25,6 +25,18 @@ describe("init and reads", () => {
     const res = await stub.fetch("https://do/charter", { headers: guest });
     expect(res.status).toBe(404);
   });
+  it("rejects a second init on an already-initialized app; original state survives", async () => {
+    const { stub } = await mint(counterCharter, { count: 3 });
+    const res = await stub.fetch("https://do/init", {
+      method: "POST",
+      headers: owner,
+      body: JSON.stringify({ charter: counterCharter, state: { count: 99 } }),
+    });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as any).error).toMatch(/already exists/);
+    const s = (await (await stub.fetch("https://do/state", { headers: guest })).json()) as any;
+    expect(s.state.count).toBe(3);
+  });
 });
 
 describe("invocation", () => {
@@ -57,6 +69,25 @@ describe("invocation", () => {
     const s = (await (await stub.fetch("https://do/state", { headers: guest })).json()) as any;
     expect(s.state.count).toBe(1);
   });
+  it("rejects a verb that leaves state undefined, without crashing the chain", async () => {
+    const charter = structuredClone(counterCharter) as any;
+    charter.verbs.wipe = {
+      description: "Leaves state undefined by assigning a nonexistent property wholesale.",
+      inputSchema: { type: "object", properties: {} },
+      code: "ctx.state = ctx.state.nonexistent; return true;",
+      access: "public",
+    };
+    const { stub } = await mint(charter, { count: 1 });
+    const res = await stub.fetch("https://do/rpc/wipe", { method: "POST", headers: guest, body: "{}" });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as any).error).toMatch(/state undefined/);
+    // state is untouched by the rejected call
+    const s = (await (await stub.fetch("https://do/state", { headers: guest })).json()) as any;
+    expect(s.state.count).toBe(1);
+    // and the DO's serial chain is still healthy: a normal invocation afterward still works
+    const r = (await (await stub.fetch("https://do/rpc/bump", { method: "POST", headers: guest, body: "{}" })).json()) as any;
+    expect(r).toMatchObject({ ok: true, result: 2 });
+  });
   it("unknown verb 404 lists available verbs", async () => {
     const { stub } = await mint(counterCharter);
     const res = await stub.fetch("https://do/rpc/nope", { method: "POST", headers: guest, body: "{}" });
@@ -83,6 +114,34 @@ describe("invocation", () => {
     expect(ok.status).toBe(200);
     const s = (await (await stub.fetch("https://do/state", { headers: guest })).json()) as any;
     expect(s.state.count).toBe(9);
+  });
+});
+
+describe("host http bridge", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("a verb's ctx.http.get sees the real mocked response body via App's makeHostHttp/safeFetch, not an error", async () => {
+    // Exercises the App DO's real makeHostHttp -> safeFetch integration (not the
+    // hand-written HostHttp stubs used in sandbox-http.test.ts), so a regression
+    // like calling .text() on safeFetch's already-decoded {status, body} value
+    // would surface here as an {error: ...} result instead of the real body.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("pong from api.example", { status: 200 })),
+    );
+    const charter = structuredClone(counterCharter) as any;
+    charter.law.allowedHosts = ["api.example.com"];
+    charter.verbs.ping = {
+      description: "Fetches a host and returns the raw response body.",
+      inputSchema: { type: "object", properties: {} },
+      code: "const res = ctx.http.get('https://api.example.com/ping'); return res.body ?? res.error;",
+      access: "public",
+    };
+    const { stub } = await mint(charter);
+    const res = await stub.fetch("https://do/rpc/ping", { method: "POST", headers: guest, body: "{}" });
+    expect(res.status).toBe(200);
+    const r = (await res.json()) as any;
+    expect(r).toMatchObject({ ok: true, result: "pong from api.example" });
   });
 });
 
