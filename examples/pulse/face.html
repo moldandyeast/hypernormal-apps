@@ -17,18 +17,44 @@
     return ms == null ? "never" : new Date(ms).toISOString();
   }
 
-  const app = await connect(new URLSearchParams(location.search).get("app"));
+  // This example face is a demo front door: it must not render an
+  // attacker-chosen app's charter on this installation's origin, and it
+  // must not crash on a missing ?app=.
+  function guardedAppUrl() {
+    const raw = new URLSearchParams(location.search).get("app");
+    if (!raw) {
+      document.body.innerHTML = `<p>${esc("Open this face with ?app=<same-origin app URL>, for example ?app=/a/<id>.")}</p>`;
+      return null;
+    }
+    let resolved;
+    try {
+      resolved = new URL(raw, location.origin);
+    } catch {
+      document.body.innerHTML = `<p>${esc("Open this face with ?app=<same-origin app URL>, for example ?app=/a/<id>.")}</p>`;
+      return null;
+    }
+    if (resolved.origin !== location.origin) {
+      document.body.innerHTML = `<p>${esc("This example face only connects to apps on this installation.")}</p>`;
+      return null;
+    }
+    return raw;
+  }
 
-  app.state.watch((s) => {
-    document.getElementById("count").innerHTML = esc(String(s.count ?? 0));
-    document.getElementById("last").innerHTML = esc(fmt(s.lastBeatAt));
-  });
+  const appUrl = guardedAppUrl();
+  if (appUrl) {
+    const app = await connect(appUrl);
 
-  document.getElementById("beat").onclick = () => app.verbs.beat({});
-  document.getElementById("refresh").onclick = async () => {
-    // read() does not change state; its result comes back only to this caller,
-    // unlike beat()'s effect, which every watcher sees via state.watch.
-    const result = await app.verbs.read({});
-    document.getElementById("out").innerHTML = esc(JSON.stringify(result));
-  };
+    app.state.watch((s) => {
+      document.getElementById("count").innerHTML = esc(String(s.count ?? 0));
+      document.getElementById("last").innerHTML = esc(fmt(s.lastBeatAt));
+    });
+
+    document.getElementById("beat").onclick = () => app.verbs.beat({});
+    document.getElementById("refresh").onclick = async () => {
+      // read() does not change state; its result comes back only to this caller,
+      // unlike beat()'s effect, which every watcher sees via state.watch.
+      const result = await app.verbs.read({});
+      document.getElementById("out").innerHTML = esc(JSON.stringify(result));
+    };
+  }
 </script>

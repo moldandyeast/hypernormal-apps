@@ -13,23 +13,49 @@
     return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
-  const app = await connect(new URLSearchParams(location.search).get("app"));
-
-  app.state.watch((s) => {
-    const open = s.open !== false;
-    document.getElementById("q").innerHTML = esc(s.question ?? "(no question set)");
-    document.getElementById("status").innerHTML = open ? "open" : "closed";
-    document.getElementById("yesCount").textContent = String((s.options ?? {}).yes ?? 0);
-    document.getElementById("noCount").textContent = String((s.options ?? {}).no ?? 0);
-    document.getElementById("yes").disabled = !open;
-    document.getElementById("no").disabled = !open;
-  });
-
-  async function vote(option) {
-    const result = await app.verbs.vote({ option });
-    document.getElementById("msg").innerHTML = result.ok ? "" : `Vote rejected: ${esc(result.reason ?? "unknown reason")}`;
+  // This example face is a demo front door: it must not render an
+  // attacker-chosen app's charter on this installation's origin, and it
+  // must not crash on a missing ?app=.
+  function guardedAppUrl() {
+    const raw = new URLSearchParams(location.search).get("app");
+    if (!raw) {
+      document.body.innerHTML = `<p>${esc("Open this face with ?app=<same-origin app URL>, for example ?app=/a/<id>.")}</p>`;
+      return null;
+    }
+    let resolved;
+    try {
+      resolved = new URL(raw, location.origin);
+    } catch {
+      document.body.innerHTML = `<p>${esc("Open this face with ?app=<same-origin app URL>, for example ?app=/a/<id>.")}</p>`;
+      return null;
+    }
+    if (resolved.origin !== location.origin) {
+      document.body.innerHTML = `<p>${esc("This example face only connects to apps on this installation.")}</p>`;
+      return null;
+    }
+    return raw;
   }
 
-  document.getElementById("yes").onclick = () => vote("yes");
-  document.getElementById("no").onclick = () => vote("no");
+  const appUrl = guardedAppUrl();
+  if (appUrl) {
+    const app = await connect(appUrl);
+
+    app.state.watch((s) => {
+      const open = s.open !== false;
+      document.getElementById("q").innerHTML = esc(s.question ?? "(no question set)");
+      document.getElementById("status").innerHTML = open ? "open" : "closed";
+      document.getElementById("yesCount").textContent = String((s.options ?? {}).yes ?? 0);
+      document.getElementById("noCount").textContent = String((s.options ?? {}).no ?? 0);
+      document.getElementById("yes").disabled = !open;
+      document.getElementById("no").disabled = !open;
+    });
+
+    async function vote(option) {
+      const result = await app.verbs.vote({ option });
+      document.getElementById("msg").innerHTML = result.ok ? "" : `Vote rejected: ${esc(result.reason ?? "unknown reason")}`;
+    }
+
+    document.getElementById("yes").onclick = () => vote("yes");
+    document.getElementById("no").onclick = () => vote("no");
+  }
 </script>

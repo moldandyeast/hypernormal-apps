@@ -275,3 +275,27 @@ or if the caller passes `{tools: false}`). Tools are held under one
 previous controller, deregistering every tool it owned, then registers the current
 verb set fresh under a new one. There is no incremental diff. An amendment that
 touches one verb still causes every tool to be deregistered and re-registered.
+
+**Same-origin by default.** A tool's `name` and `description` come straight
+from the charter, verbatim, and `registerTool` puts them into
+`document.modelContext` on whatever origin the face document is running on.
+If the app were attacker-controlled, that would let the app write
+attacker-authored instructions into a trusted origin's tool set: prompt
+injection through the tool description, not the tool output.
+`untrustedContentHint` does not cover this, since it only marks a tool's
+*result* untrusted, not its description.
+
+So `connect()` registers tools only when the app is same-origin with the
+document the face runs in. Fetching the charter, calling verbs, and watching
+state over the socket stay fully cross-origin capable; only the
+registration step is gated, since that is the step that writes into the
+document's own `modelContext`. The decision is a pure exported function,
+`mayRegisterTools(appUrl, docOrigin, opts)`: `{tools: false}` disables
+registration entirely, as before; `{tools: "cross-origin"}` opts back into
+registering tools for a cross-origin app; with no `tools` option, tools
+register only when the app's origin equals the document's origin. If the
+document has no origin to register onto (no browser, `file://`, an opaque
+origin) or the app URL cannot be parsed, registration is skipped. When
+registration is skipped specifically because the app is cross-origin,
+`connect()` logs one `console.warn` naming the `{tools: "cross-origin"}`
+opt-in.

@@ -10,22 +10,48 @@
     return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
-  const app = await connect(new URLSearchParams(location.search).get("app"));
+  // This example face is a demo front door: it must not render an
+  // attacker-chosen app's charter on this installation's origin, and it
+  // must not crash on a missing ?app=.
+  function guardedAppUrl() {
+    const raw = new URLSearchParams(location.search).get("app");
+    if (!raw) {
+      document.body.innerHTML = `<p>${esc("Open this face with ?app=<same-origin app URL>, for example ?app=/a/<id>.")}</p>`;
+      return null;
+    }
+    let resolved;
+    try {
+      resolved = new URL(raw, location.origin);
+    } catch {
+      document.body.innerHTML = `<p>${esc("Open this face with ?app=<same-origin app URL>, for example ?app=/a/<id>.")}</p>`;
+      return null;
+    }
+    if (resolved.origin !== location.origin) {
+      document.body.innerHTML = `<p>${esc("This example face only connects to apps on this installation.")}</p>`;
+      return null;
+    }
+    return raw;
+  }
 
-  app.state.watch((s) => {
-    document.getElementById("items").innerHTML = (s.items ?? [])
-      .map((i) => `<li data-id="${esc(i.id)}" style="${i.done ? "text-decoration:line-through" : ""}">${esc(i.text)}</li>`)
-      .join("");
-  });
+  const appUrl = guardedAppUrl();
+  if (appUrl) {
+    const app = await connect(appUrl);
 
-  document.getElementById("f").onsubmit = async (e) => {
-    e.preventDefault();
-    await app.verbs.add({ text: document.getElementById("t").value });
-    e.target.reset();
-  };
+    app.state.watch((s) => {
+      document.getElementById("items").innerHTML = (s.items ?? [])
+        .map((i) => `<li data-id="${esc(i.id)}" style="${i.done ? "text-decoration:line-through" : ""}">${esc(i.text)}</li>`)
+        .join("");
+    });
 
-  document.getElementById("items").onclick = (e) => {
-    const id = e.target.dataset.id;
-    if (id) app.verbs.toggle({ id });
-  };
+    document.getElementById("f").onsubmit = async (e) => {
+      e.preventDefault();
+      await app.verbs.add({ text: document.getElementById("t").value });
+      e.target.reset();
+    };
+
+    document.getElementById("items").onclick = (e) => {
+      const id = e.target.dataset.id;
+      if (id) app.verbs.toggle({ id });
+    };
+  }
 </script>

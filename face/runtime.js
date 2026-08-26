@@ -16,6 +16,29 @@ export function toolsFromCharter(charter, invoke) {
     }));
 }
 
+// Exported and tested. Decides whether connect() may register WebMCP tools.
+// docOrigin is self.location.origin (or null/undefined outside a browser);
+// appUrl is the target app URL; opts is connect()'s options.
+//
+// The default is same-origin-only: a face registers tools onto the document's
+// origin, and a tool's name and description are attacker-controlled text
+// whenever the app is attacker-controlled. Registering only when the app is
+// same-origin as the face keeps that text confined to content the origin
+// already trusts. Cross-origin registration is opt-in only, via
+// {tools: "cross-origin"}.
+export function mayRegisterTools(appUrl, docOrigin, opts = {}) {
+  if (opts.tools === false) return false; // explicit full opt-out (existing behavior)
+  if (opts.tools === "cross-origin") return true; // explicit opt-in to cross-origin registration
+  if (!docOrigin) return false; // no trusted origin to register onto (file://, opaque, non-browser)
+  let appOrigin;
+  try {
+    appOrigin = new URL(appUrl, docOrigin).origin;
+  } catch {
+    return false;
+  }
+  return appOrigin === docOrigin; // same-origin only, by default
+}
+
 function live(initial) {
   const watchers = new Set();
   let value = initial;
@@ -69,7 +92,13 @@ export async function connect(appUrl, options = {}) {
 
   let toolController = null;
   async function registerTools() {
-    if (options.tools === false || typeof document === "undefined" || !("modelContext" in document)) return;
+    if (typeof document === "undefined" || !("modelContext" in document)) return;
+    if (options.tools === false) return;
+    const docOrigin = typeof self !== "undefined" && self.location ? self.location.origin : undefined;
+    if (!mayRegisterTools(appUrl, docOrigin, options)) {
+      console.warn('Hypernormal: not registering WebMCP tools for a cross-origin app; pass { tools: "cross-origin" } to connect() to override.');
+      return;
+    }
     if (toolController) toolController.abort();
     toolController = new AbortController();
     const signal = toolController.signal;
