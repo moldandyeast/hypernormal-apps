@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>webmcp proof</title>
+<h1>webmcp proof</h1>
+<p id="out">tools: not registered</p>
+<script>
+  const out = document.getElementById("out");
+  if (!("modelContext" in document)) {
+    out.textContent = "document.modelContext is absent. Enable chrome://flags/#enable-webmcp-testing and relaunch.";
+  } else {
+    document.modelContext.registerTool({
+      name: "echo",
+      description: "Returns the text it is given. Exists to prove tool registration works.",
+      inputSchema: { type: "object", properties: { text: { type: "string" } }, required: ["text"] },
+      async execute({ text }) { return { content: [{ type: "text", text }] }; }
+    }).then(() => { out.textContent = "tools: echo registered"; });
+  }
+</script>
