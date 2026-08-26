@@ -67,8 +67,14 @@ async function verifyTicket(ownerKey: string, ticket: string | null): Promise<bo
   }
   try {
     if (!timingSafeEqualBytes(b64urlToBytes(sig), new Uint8Array(expected))) return false;
-    const { exp } = JSON.parse(dec.decode(b64urlToBytes(p)));
-    return typeof exp === "number" && exp > Math.floor(Date.now() / 1000);
+    const { sub, exp } = JSON.parse(dec.decode(b64urlToBytes(p)));
+    // Require sub === "owner" so this ticket format can never be reused as a
+    // lower-privilege token: the moment anything else mints a ticket under
+    // this same derived key (a guest link, a share token, a scoped
+    // delegation), it must NOT be silently accepted as full owner here.
+    // Number.isFinite (not typeof exp === "number") rejects Infinity, which
+    // JSON.parse produces for an out-of-range numeric literal like `1e999`.
+    return sub === "owner" && Number.isFinite(exp) && exp > Math.floor(Date.now() / 1000);
   } catch {
     // Malformed base64/JSON in either segment: fail closed, never throw.
     return false;
@@ -91,8 +97,15 @@ async function checkOwnerKey(presented: string, ownerKey: string | undefined): P
   // presented bearer would hash-match and grant owner. Never let an unset
   // secret be satisfied by an unset (or blank) credential.
   if (!ownerKey || !presented) return false;
-  const [a, b] = await Promise.all([sha256(presented), sha256(ownerKey)]);
-  return timingSafeEqualBytes(a, b);
+  // Wrapped so this auth path holds the same "never throws" invariant as
+  // verifyTicket, structurally rather than by relying on sha256/timingSafeEqual
+  // happening not to throw for these inputs.
+  try {
+    const [a, b] = await Promise.all([sha256(presented), sha256(ownerKey)]);
+    return timingSafeEqualBytes(a, b);
+  } catch {
+    return false;
+  }
 }
 
 export async function isOwner(request: Request, env: Env): Promise<boolean> {
