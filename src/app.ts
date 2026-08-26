@@ -1,6 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { BUDGET, type Charter, type Env } from "./types";
-import { checkCharter, byteLength } from "./charter";
+import { checkCharter, byteLength, applyAmendment } from "./charter";
 import { checkInput } from "./schema";
 import { execute, type HostHttp } from "./sandbox";
 import { safeFetch } from "./safe-fetch";
@@ -30,6 +30,11 @@ export class App extends DurableObject<Env> {
     if (request.method === "GET" && path === "/state") return Response.json({ ok: true, state: await this.readState() });
     if (request.method === "PUT" && path === "/state") return this.seed(request, owner);
     if (request.method === "POST" && path.startsWith("/rpc/")) return this.rpc(charter, path.slice(5), request, owner);
+    if (request.method === "PUT" && path === "/charter") return this.amend(charter, request, owner);
+    if (request.method === "GET" && path === "/history") return this.history();
+    if (request.method === "POST" && path === "/rollback") return this.rollback(charter, request, owner);
+    if (request.method === "GET" && path === "/export") return Response.json({ ok: true, export: { charter, state: await this.readState() } });
+    if (request.method === "POST" && path === "/retire") return this.retire(owner);
 
     return err(404, `No route for ${request.method} ${path} on this app.`);
   }
@@ -82,6 +87,58 @@ export class App extends DurableObject<Env> {
       this.broadcastState(out.state);
       return Response.json({ ok: true, result: out.result });
     });
+  }
+
+  private async amend(current: Charter, request: Request, owner: boolean): Promise<Response> {
+    if (!owner) return err(404, "No app lives at this URL.");
+    const patch = await request.json().catch(() => null);
+    if (patch === null) return err(400, "Body must be a JSON amendment: {intent?, verbs?, law?, schedule?}.");
+    const out = applyAmendment(current, patch);
+    if ("error" in out) return err(400, out.error);
+    return this.runSerial(async () => {
+      await this.pushHistory(current);
+      await this.ctx.storage.put("charter", out.charter);
+      this.broadcastCharter(out.charter);
+      return Response.json({ ok: true, verbs: Object.keys(out.charter.verbs) });
+    });
+  }
+
+  private async history(): Promise<Response> {
+    const history = (await this.ctx.storage.get<{ version: number; at: number; charter: Charter }[]>("history")) ?? [];
+    return Response.json({ ok: true, history });
+  }
+
+  private async rollback(current: Charter, request: Request, owner: boolean): Promise<Response> {
+    if (!owner) return err(404, "No app lives at this URL.");
+    const body = (await request.json().catch(() => ({}))) as { version?: number };
+    const history = (await this.ctx.storage.get<{ version: number; at: number; charter: Charter }[]>("history")) ?? [];
+    const entry = history.find((h) => h.version === body.version);
+    if (!entry) return err(404, `No history version ${body.version ?? "(none given)"}. Versions: ${history.map((h) => h.version).join(", ") || "none"}.`);
+    return this.runSerial(async () => {
+      await this.pushHistory(current);
+      await this.ctx.storage.put("charter", entry.charter);
+      this.broadcastCharter(entry.charter);
+      return Response.json({ ok: true, restored: entry.version, verbs: Object.keys(entry.charter.verbs) });
+    });
+  }
+
+  private async retire(owner: boolean): Promise<Response> {
+    if (!owner) return err(404, "No app lives at this URL.");
+    await this.ctx.storage.deleteAll();
+    return Response.json({ ok: true });
+  }
+
+  private async pushHistory(charter: Charter): Promise<void> {
+    const history = (await this.ctx.storage.get<{ version: number; at: number; charter: Charter }[]>("history")) ?? [];
+    const seq = ((await this.ctx.storage.get<number>("historySeq")) ?? 0) + 1;
+    history.push({ version: seq, at: Date.now(), charter });
+    while (history.length > BUDGET.HISTORY) history.shift();
+    await this.ctx.storage.put("historySeq", seq);
+    await this.ctx.storage.put("history", history);
+  }
+
+  protected broadcastCharter(_charter: Charter): void {
+    // Sockets arrive in Task 8.
   }
 
   private makeHostHttp(allowedHosts: string[]): HostHttp {
