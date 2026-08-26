@@ -25,6 +25,16 @@ describe("init and reads", () => {
     const res = await stub.fetch("https://do/charter", { headers: guest });
     expect(res.status).toBe(404);
   });
+  it("rejects an init charter with a malformed cron; nothing is written", async () => {
+    const charter = structuredClone(counterCharter) as any;
+    charter.schedule = { cron: "not a cron", verb: "bump" };
+    const bad = await mint(charter);
+    expect(bad.res.status).toBe(400);
+    expect(((await bad.res.json()) as any).error).toMatch(/cron/);
+    // no charter was ever persisted for this DO id
+    const res = await bad.stub.fetch("https://do/charter", { headers: guest });
+    expect(res.status).toBe(404);
+  });
   it("rejects a second init on an already-initialized app; original state survives", async () => {
     const { stub } = await mint(counterCharter, { count: 3 });
     const res = await stub.fetch("https://do/init", {

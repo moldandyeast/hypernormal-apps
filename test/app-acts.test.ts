@@ -22,6 +22,14 @@ describe("amend", () => {
     const c = (await (await stub.fetch("https://do/charter", { headers: guest })).json()) as any;
     expect(c.charter.intent).toMatch(/A counter/);
   });
+  it("rejects an amendment with a malformed cron; charter unchanged, no alarm crash", async () => {
+    const { stub } = await mint(counterCharter);
+    const res = await stub.fetch("https://do/charter", { method: "PUT", headers: owner, body: JSON.stringify({ schedule: { cron: "not a cron", verb: "bump" } }) });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as any).error).toMatch(/cron/);
+    const c = (await (await stub.fetch("https://do/charter", { headers: guest })).json()) as any;
+    expect(c.charter.schedule).toBeUndefined();
+  });
   it("caps history at the budget without renumbering", async () => {
     const { stub } = await mint(counterCharter);
     for (let i = 0; i < 12; i++) {

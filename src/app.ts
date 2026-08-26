@@ -163,18 +163,27 @@ export class App extends DurableObject<Env> {
     const charter = await this.ctx.storage.get<Charter>("charter");
     if (!charter?.schedule) return;
     const verb = charter.verbs[charter.schedule.verb];
-    if (verb) {
-      await this.runSerial(async () => {
-        const state = await this.readState();
-        const hostHttp = charter.law.allowedHosts.length > 0 ? this.makeHostHttp(charter.law.allowedHosts) : undefined;
-        const out = await execute(verb.code, state, { scheduled: true }, { hostHttp });
-        if (out.ok && byteLength(out.state) <= BUDGET.STATE) {
-          await this.ctx.storage.put("state", out.state);
-          this.broadcastState(out.state);
-        }
-      });
+    try {
+      if (verb) {
+        await this.runSerial(async () => {
+          const state = await this.readState();
+          const hostHttp = charter.law.allowedHosts.length > 0 ? this.makeHostHttp(charter.law.allowedHosts) : undefined;
+          const out = await execute(verb.code, state, { scheduled: true }, { hostHttp });
+          if (out.ok && byteLength(out.state) <= BUDGET.STATE) {
+            await this.ctx.storage.put("state", out.state);
+            this.broadcastState(out.state);
+          }
+        });
+      }
+    } catch {
+      // A scheduled verb invocation can fail all the way through execute()'s
+      // WASM teardown (see the asyncify dispose note in src/sandbox.ts) rather
+      // than resolving to {ok:false}. There is no caller to report that to, and
+      // a broken scheduled verb must never take the whole schedule down with
+      // it, so we swallow it here; the finally below always re-arms.
+    } finally {
+      await this.applySchedule(charter);
     }
-    await this.applySchedule(charter);
   }
 
   protected broadcastCharter(charter: Charter): void {

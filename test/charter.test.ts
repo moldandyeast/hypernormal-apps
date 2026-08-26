@@ -20,6 +20,9 @@ describe("checkCharter", () => {
   it("rejects a schedule naming a missing verb", () => {
     expect(checkCharter({ ...good, schedule: { cron: "0 * * * *", verb: "nope" } })).toMatch(/schedule/);
   });
+  it("rejects a schedule with a malformed cron expression", () => {
+    expect(checkCharter({ ...good, schedule: { cron: "not a cron", verb: "bump" } })).toMatch(/cron/);
+  });
   it("rejects verbs as array (must be object)", () => {
     expect(checkCharter({ ...good, verbs: [{ description: "d", inputSchema: { type: "object", properties: {} }, code: "return 1;", access: "public" }] })).toMatch(/verbs/);
   });

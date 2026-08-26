@@ -1,5 +1,6 @@
 import { BUDGET, type Charter, type Verb } from "./types";
 import { checkSchema } from "./schema";
+import { nextCronTime } from "./schedule";
 
 export const VERB_NAME = /^[a-zA-Z0-9_-]{1,64}$/;
 const VISIBILITIES = ["private", "unlisted", "public"];
@@ -23,6 +24,11 @@ export function checkCharter(c: unknown): string | null {
     const s = ch.schedule as Record<string, unknown>;
     if (typeof s.cron !== "string" || typeof s.verb !== "string" || !(s.verb in (ch.verbs as object)))
       return "schedule must be {cron, verb} naming an existing verb";
+    try {
+      nextCronTime(s.cron, Date.now());
+    } catch {
+      return "schedule.cron is not a valid cron expression";
+    }
   }
   if (byteLength(c) > BUDGET.CHARTER) return `charter budget exceeded: ${byteLength(c)} > ${BUDGET.CHARTER} bytes`;
   return null;
