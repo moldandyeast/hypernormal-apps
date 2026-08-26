@@ -17,7 +17,7 @@
 - Error form everywhere: `{ok: false, error: "<message an agent can act on>"}`. Denials are 404, never 403.
 - Budgets live in `src/types.ts` only; every other place reads them from there.
 - Verb names: `/^[a-zA-Z0-9_-]{1,64}$/`.
-- Ancestors for ports are cloned at `.context/repos/farnsworth-house` and `.context/repos/durable-headless-apps`. Copy pinned dependency versions from `.context/repos/farnsworth-house/package.json`; pin miniflare exactly.
+- Ancestors for ports are cloned at `.context/repos/farnsworth-house` and `.context/repos/durable-headless-apps`. Copy pinned dependency versions from `.context/repos/farnsworth-house/package.json` verbatim: `@jitl/quickjs-wasmfile-release-asyncify ^0.32.0`, `quickjs-emscripten-core ^0.32.0`, `croner ^9.0.0`, `qrcode-generator ^2.0.4`, `miniflare 4.20260708.1` (exact), `@cloudflare/vitest-pool-workers ^0.18.4`, `@cloudflare/workers-types ^5.20260713.1`, `typescript ^5.9.0`, `vitest ^4.1.10`, `wrangler ^4.110.0`. All confirmed present in the ancestor at plan-writing time.
 - All code lands at the repository root (this repo becomes the library; publish is a later curated copy).
 - TDD per task: failing test first, then code, then green, then commit.
 
@@ -1631,7 +1631,7 @@ CORS: derived faces run from anywhere (a local file, a sandboxed preview), so th
   });
 ```
 
-QR: port the SVG QR implementation from the ancestor (find it with `grep -ril "svg" .context/repos/farnsworth-house/src | xargs grep -l qr` and copy the module plus any pinned dependency it uses) into `src/qr.ts`; route `GET /a/:id/qr` gated like the charter, `Content-Type: image/svg+xml`, `Cache-Control: public, max-age=3600`. Test: mint, fetch `/a/<id>/qr`, expect 200 and an `<svg` body.
+QR: copy `.context/repos/farnsworth-house/src/qr.ts` to `src/qr.ts` unchanged, fixing imports only. It depends on the pinned `qrcode-generator` package; add it to `package.json` at the version pinned in `.context/repos/farnsworth-house/package.json` (`^2.0.4`) if Task 1 did not already include it. Route `GET /a/:id/qr` gated like the charter, `Content-Type: image/svg+xml`, `Cache-Control: public, max-age=3600`. Test: mint, fetch `/a/<id>/qr`, expect 200 and an `<svg` body.
 
 Router rules, in order, inside `fetch` after computing `const owner = await isOwner(request, env)`:
 
