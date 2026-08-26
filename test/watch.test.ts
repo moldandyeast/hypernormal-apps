@@ -9,7 +9,7 @@ async function open(stub: any) {
   const ws = res.webSocket!;
   ws.accept();
   const messages: any[] = [];
-  ws.addEventListener("message", (e: MessageEvent) => messages.push(JSON.parse(e.data as string)));
+  ws.addEventListener("message", (e: MessageEvent) => { messages.push(JSON.parse(e.data as string)); });
   return { ws, messages };
 }
 const settle = () => new Promise((r) => setTimeout(r, 50));
@@ -46,6 +46,23 @@ describe("watching", () => {
     expect(a.messages.filter((m) => m.type === "presence")).toHaveLength(0);
     const s = (await (await stub.fetch("https://do/state", { headers: guest })).json()) as any;
     expect(JSON.stringify(s.state)).not.toMatch(/cursor/);
+  });
+  it("enforces the signal budget in UTF-8 bytes, not JS string length", async () => {
+    const { stub } = await mint(counterCharter);
+    const a = await open(stub);
+    const b = await open(stub);
+    await settle();
+    // Each "🎉" is 2 UTF-16 code units (JS .length) but 4 UTF-8 bytes: 1500 of them is
+    // 3000 in .length (under BUDGET.SIGNAL=4096) but 6000 UTF-8 bytes (over budget).
+    const over = JSON.stringify({ type: "presence", blob: "🎉".repeat(1500) });
+    expect(over.length).toBeLessThan(4096);
+    a.ws.send(over); // over the real byte budget: dropped
+    const under = JSON.stringify({ type: "presence", blob: "🎉".repeat(100) }); // well under budget either way
+    a.ws.send(under);
+    await settle();
+    const relayed = b.messages.filter((m) => m.type === "presence");
+    expect(relayed).toHaveLength(1);
+    expect(relayed[0].blob).toBe("🎉".repeat(100));
   });
   it("answers ping with pong", async () => {
     const { stub } = await mint(counterCharter);

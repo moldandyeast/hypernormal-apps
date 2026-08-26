@@ -184,7 +184,7 @@ export class App extends DurableObject<Env> {
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
     if (typeof message !== "string") return;
     if (message === "ping") { ws.send(JSON.stringify({ type: "pong" })); return; }
-    if (message.length > BUDGET.SIGNAL) return;
+    if (new TextEncoder().encode(message).length > BUDGET.SIGNAL) return;
     let parsed: unknown;
     try { parsed = JSON.parse(message); } catch { return; }
     if (typeof parsed !== "object" || parsed === null || (parsed as { type?: string }).type !== "presence") return;
