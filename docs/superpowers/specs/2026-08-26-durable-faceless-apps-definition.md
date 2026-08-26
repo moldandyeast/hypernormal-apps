@@ -28,14 +28,14 @@ Status: approved 2026-08-26. This document is the foundation of the library. Cod
 - `code`: the body of a synchronous JavaScript function, stored as text.
 - `access`: `owner` or `public`.
 
-**State.** One JSON document. It is the app's only memory. Readable by every visitor the law admits. Written only by verbs, with one exception listed under Acts.
+**State.** One JSON document, bounded by a fixed size budget. It is the app's only memory. Readable by every visitor the law admits. Written only by verbs, with one exception listed under Acts. An app that outgrows its budget is two apps.
 
 **Law.** The app's access rules: `law = (visibility, allowedHosts)` plus each verb's `access`.
 
-- `visibility`: `private`, `unlisted`, or `public`. Private: owner only. Unlisted: anyone holding the link. Public: anyone, and the app is listed.
+- `visibility`: `private`, `unlisted`, or `public`. Private: owner only. Unlisted: anyone holding the link. Public: anyone, and the installation lists the app.
 - `allowedHosts`: a list of hostnames the app's verbs may reach over HTTPS. Empty by default.
 
-**Face.** An HTML document that renders an app's state and invokes its verbs. A face is derived from the charter and is disposable: deleting a face never touches the app. An app may have many faces or none.
+**Face.** An HTML document that renders an app's state and invokes its verbs. A face is derived from the charter and is disposable: deleting a face never touches the app. An app may have many faces or none. A face carries a visibility with the same values and meanings as an app's.
 
 **Owner.** Exactly one per installation. Holds the key. Everyone else is a **guest**: no account, no registration, identified by nothing but possession of a link.
 
@@ -56,7 +56,7 @@ The contract of one invocation:
 
 1. Input is validated against `inputSchema`. Invalid input is rejected before any code runs.
 2. The code runs in a sandbox. It sees exactly: `input`, `state`, a clock fixed at invocation time, a random source seeded at invocation time, and, if `allowedHosts` is not empty, a blocking HTTP helper restricted to those hosts.
-3. The code can not: reach the network otherwise, read files, import modules, run asynchronously, see another app, or exceed its budgets. Budgets bound operations, memory, and stack depth. A verb that exceeds a budget fails.
+3. The code can not: reach the network otherwise, read files, import modules, run asynchronously, see another app, or exceed its budgets. Budgets bound operations, memory, stack depth, and the sizes of input, result, and state. A verb that exceeds a budget fails.
 4. The invocation is atomic. If the code completes, the new state persists and the result returns to the caller. If it fails, state is unchanged and the caller receives the error. There is no partial write.
 5. Invocations on one app execute one at a time, in arrival order. There is no concurrent write within an app.
 6. A verb's result goes only to its caller. State goes to everyone watching. These are the system's two channels, and they differ: the result is private to the caller, state is shared.
@@ -87,15 +87,15 @@ Every change to a charter appends the previous charter to a bounded history. A r
 
 Acts change what exists. Invocations change state; acts change apps.
 
-- **Mint.** Create an app from a charter and an optional initial state. Owner only.
+- **Mint.** Create an app from a charter and an optional initial state. Owner only. An installation may open minting to guests; the default is closed.
 - **Amend.** Replace parts of a charter: intent, verbs, law. Owner only. A failed verb returns its error in prose plain enough that an agent can amend the code and try again.
-- **Fork.** Copy a charter, and optionally state, to a new URL under a new owner key. History does not copy.
+- **Fork.** Copy a charter, and optionally state, to a new URL in the same installation, under the same owner. History does not copy. Between installations no act is needed: anyone the law admits can read charter and state and mint the copy on an installation they own.
 - **Seed.** Replace state wholesale. Owner only. This is an administrative act, the one write that bypasses verbs.
 - **Retire.** Delete an app. The URL stops resolving.
 
 ## Watching
 
-Anyone the law admits may hold a WebSocket to an app. On connect, the watcher receives the full state. After every state change, every watcher receives the full new state. Watchers may relay small ephemeral signals to each other through the app (cursors, presence). These signals are never stored and never enter state.
+Anyone the law admits may hold a WebSocket to an app. On connect, the watcher receives the full state. After every state change, every watcher receives the full new state. Watchers may relay small ephemeral signals to each other through the app (cursors, presence). A signal is bounded in size. These signals are never stored and never enter state.
 
 Faces trust the socket: a face hydrates from the state message it receives on connect, not from a separate read. The socket's state is the single source of truth for every face.
 
@@ -106,7 +106,7 @@ Faces trust the socket: a face hydrates from the state message it receives on co
 - No build step and no deploy step for apps. Apps are data.
 - No SDK requirement. HTTP and JSON are the whole contract.
 - No canonical face. The platform serves faces; it does not prefer one.
-- No unbounded execution. Every budget is finite and enforced.
+- No unbounded execution and no unbounded data. Every budget is finite and enforced: operations, memory, stack, input, result, state, charter, signal.
 
 ## Deferred, deliberately
 
