@@ -20,10 +20,17 @@ ordered: they execute one at a time, in arrival order, so there is no concurrent
 write and no lost update to defend against.
 
 State is a value you can always read (`GET /a/<id>/state`) and watch (the `/ws`
-socket). Presence is events you can only witness: a presence signal is relayed to
-other watchers as it happens, never stored, and never becomes part of state. State
-and presence are different things, and the protocol keeps them different: state
-has history (through the charter) and durability, presence has neither.
+socket): every write persists, survives every restart, and is delivered to every
+watcher. It carries no history of its own; only the charter does (`GET
+/a/<id>/history` and `BUDGET.HISTORY` in §4 both apply to the charter alone,
+never to state). A bad write is not recoverable through the platform: the
+durability guarantee comes from each write being atomic, not from state being
+versioned.
+
+Presence is events you can only witness: a presence signal is relayed to other
+watchers as it happens, never written to storage, and never becomes part of
+state. Presence has neither durability nor history; state has durability
+without history.
 
 ## 2. Routes
 
@@ -114,9 +121,12 @@ Status codes carry meaning too:
 
 **The top-level boundary.** `src/index.ts`'s default export wraps the entire router
 in `try`/`catch`. Any exception that escapes `handle()` (reachable without
-credentials: a header value carrying a newline throws inside the `Headers`
-constructor before any auth check runs; the sandbox can fail through its own WASM
-teardown rather than resolving) becomes `{ok:false, error: <message>}` at `500`,
+credentials: `POST /login` reuses `isOwner()` a second time to test the submitted
+form key against the one comparison in `auth.ts`, and a key value carrying a
+newline throws inside the `Headers` constructor during that check, after the
+request's own top-level `isOwner()` call has already completed; the sandbox can
+fail through its own WASM teardown rather than resolving) becomes
+`{ok:false, error: <message>}` at `500`,
 through the same `finalize()` path as every other response. That means even a
 crash still gets `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex`, and CORS
 headers; nothing escapes as a raw, headerless `workerd` 500.
