@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The memory: timeline</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font: 15px/1.6 ui-sans-serif, system-ui, sans-serif; color: #111; background: #fff;
+         max-width: 34rem; margin: 0 auto; padding: 3rem 1.25rem; }
+  h1 { font-size: 1.15rem; } .sub { color: #666; font-size: .85rem; margin: .3rem 0 1.6rem; }
+  ol { list-style: none; } li { display: flex; gap: .7rem; align-items: baseline; padding: .45rem 0; border-top: 1px solid #eee; }
+  .dot { width: .8rem; height: .8rem; border-radius: 50%; flex-shrink: 0; align-self: center; border: 1px solid #ddd; }
+  .when { color: #999; font-size: .78rem; margin-left: auto; white-space: nowrap; }
+  .empty { color: #999; } a { color: #3B5BDB; }
+</style>
+</head>
+<body>
+  <h1>The memory: timeline</h1>
+  <p class="sub">One face over the log app: every look this site has had, newest first. <a href="/">back</a></p>
+  <ol id="list"></ol>
+<script type="module">
+  import { connect } from "/runtime.js";
+  const ACCENTS = { indigo: "#3B5BDB", green: "#2B8A3E", orange: "#D9480F", violet: "#862E9C", red: "#C92A2A", teal: "#087F5B" };
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const ago = (t) => { const s = Math.max(1, Math.round((Date.now() - t) / 1000));
+    if (s < 60) return `${s}s ago`; if (s < 3600) return `${Math.round(s / 60)}m ago`;
+    if (s < 86400) return `${Math.round(s / 3600)}h ago`; return `${Math.round(s / 86400)}d ago`; };
+
+  function guardedAppUrl() {
+    const raw = new URLSearchParams(location.search).get("app");
+    const show = (m) => { document.getElementById("list").innerHTML = `<li class="empty">${esc(m)}</li>`; };
+    if (!raw) { show("Open this face with ?app=<same-origin app URL>, for example ?app=/a/<id>."); return null; }
+    let resolved; try { resolved = new URL(raw, location.origin); } catch { show("The app URL could not be parsed."); return null; }
+    if (resolved.origin !== location.origin) { show("This face only connects to apps on this installation."); return null; }
+    return resolved.href;
+  }
+
+  const appUrl = guardedAppUrl();
+  if (appUrl) {
+    const app = await connect(appUrl, { tools: false });
+    app.state.watch((s) => {
+      const entries = (s.entries ?? []).slice().reverse();
+      document.getElementById("list").innerHTML = entries.length === 0
+        ? `<li class="empty">No changes recorded yet. Go change the look.</li>`
+        : entries.map((e) => `<li><span class="dot" style="background:${ACCENTS[e.look.accent] ?? "#ccc"}"></span>
+            <span>${esc(e.look.accent)} &middot; ${esc(e.look.mode)} &middot; ${esc(e.look.radius)}</span>
+            <span class="when">#${e.seq} &middot; ${ago(e.at)}</span></li>`).join("");
+    });
+  }
+</script>
+</body>
+</html>

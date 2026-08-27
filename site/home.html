@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hypernormal</title>
+<meta name="description" content="Durable faceless apps. A charter and a state at one URL, reachable by people and agents through the same three doors.">
+<style>
+  :root {
+    --bg: #FFFFFF; --fg: #111111; --muted: #666666; --line: #E5E5E5;
+    --surface: #F7F7F7; --accent: #3B5BDB; --radius: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", sans-serif;
+    max-width: 42rem; margin: 0 auto; padding: 3.5rem 1.25rem 5rem;
+    transition: background-color .35s ease, color .35s ease;
+  }
+  a { color: var(--accent); text-underline-offset: 3px; }
+  h1 { font-size: 1.7rem; letter-spacing: -0.01em; }
+  h2 { font-size: 1.1rem; margin: 2.6rem 0 .6rem; letter-spacing: -0.005em; }
+  p { margin: .8rem 0; }
+  .lede { color: var(--muted); margin-top: .4rem; }
+  .controls {
+    margin: 2rem 0 0; padding: 1rem; background: var(--surface);
+    border: 1px solid var(--line); border-radius: var(--radius);
+    display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; align-items: center;
+    transition: background-color .35s ease, border-radius .35s ease;
+  }
+  .controls .group { display: flex; gap: .4rem; align-items: center; }
+  .controls .label { font-size: .78rem; color: var(--muted); margin-right: .1rem; }
+  button {
+    font: inherit; font-size: .85rem; color: var(--fg);
+    background: var(--bg); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: .3rem .7rem; cursor: pointer;
+    transition: background-color .35s ease, border-radius .35s ease, border-color .2s ease;
+  }
+  button:hover { border-color: var(--accent); }
+  button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .swatch {
+    width: 1.5rem; height: 1.5rem; padding: 0; border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+  .swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
+  .chip { font-size: .8rem; color: var(--muted); margin-left: auto; }
+  .hint {
+    margin-top: .8rem; font-size: .8rem; color: var(--muted);
+    border-left: 3px solid var(--accent); padding-left: .8rem;
+    transition: border-color .35s ease;
+  }
+  footer { margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--line); font-size: .85rem; color: var(--muted); }
+  footer a { margin-right: 1.1rem; }
+  .boot-error { color: var(--muted); margin-top: 2rem; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Hypernormal</h1>
+    <p class="lede">Durable faceless apps. This page is three of them.</p>
+    <div class="controls" id="controls" hidden>
+      <span class="group"><span class="label">mode</span>
+        <button id="mode-light">light</button><button id="mode-dark">dark</button>
+      </span>
+      <span class="group"><span class="label">accent</span><span id="swatches" class="group"></span></span>
+      <span class="group"><span class="label">corners</span>
+        <button data-radius="sharp">sharp</button><button data-radius="soft">soft</button><button data-radius="round">round</button>
+      </span>
+      <span class="group"><button id="reset">reset</button></span>
+      <span class="chip" id="chip"></span>
+    </div>
+    <p class="hint" id="hint" hidden>Your browser speaks WebMCP: this page has registered the look as tools
+      (<code>set_mode</code>, <code>set_accent</code>, <code>set_radius</code>, <code>reset</code>).
+      Ask your agent to restyle the site; everyone watching sees it.</p>
+  </header>
+  <main id="sections"></main>
+  <footer id="footer">
+    <a id="link-timeline" href="#">the memory: timeline</a>
+    <a id="link-stats" href="#">stats</a>
+    <a href="https://github.com/moldandyeast/kohlhaas">source</a>
+    <span>agents: <code>curl</code> this URL for the manual</span>
+  </footer>
+<script type="module">
+  import { connect } from "/runtime.js";
+
+  const LOOK = "__LOOK_ID__", PAGE = "__PAGE_ID__", LOG = "__LOG_ID__";
+
+  // The palette, mirrored from the look app's charter intent. The charter is
+  // the source of truth; this map only turns its names into pixels.
+  const ACCENTS = {
+    indigo: { light: "#3B5BDB", dark: "#91A7FF" },
+    green:  { light: "#2B8A3E", dark: "#8CE99A" },
+    orange: { light: "#D9480F", dark: "#FFC078" },
+    violet: { light: "#862E9C", dark: "#E599F7" },
+    red:    { light: "#C92A2A", dark: "#FFA8A8" },
+    teal:   { light: "#087F5B", dark: "#63E6BE" },
+  };
+  const BASE = {
+    light: { bg: "#FFFFFF", fg: "#111111", muted: "#666666", line: "#E5E5E5", surface: "#F7F7F7" },
+    dark:  { bg: "#111111", fg: "#EDEDED", muted: "#999999", line: "#2A2A2A", surface: "#1B1B1B" },
+  };
+  const RADII = { sharp: "0px", soft: "8px", round: "16px" };
+
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  function applyLook(s) {
+    const root = document.documentElement.style;
+    const base = BASE[s.mode] ?? BASE.light;
+    for (const [k, v] of Object.entries(base)) root.setProperty(`--${k}`, v);
+    root.setProperty("--accent", (ACCENTS[s.accent] ?? ACCENTS.indigo)[s.mode] ?? ACCENTS.indigo.light);
+    root.setProperty("--radius", RADII[s.radius] ?? RADII.soft);
+    document.getElementById("mode-light").setAttribute("aria-pressed", s.mode === "light");
+    document.getElementById("mode-dark").setAttribute("aria-pressed", s.mode === "dark");
+    for (const b of document.querySelectorAll("#swatches .swatch")) {
+      b.style.background = ACCENTS[b.dataset.accent][s.mode];
+      b.setAttribute("aria-pressed", b.dataset.accent === s.accent);
+    }
+    for (const b of document.querySelectorAll("[data-radius]")) {
+      b.setAttribute("aria-pressed", b.dataset.radius === s.radius);
+    }
+  }
+
+  function renderSections(s) {
+    document.getElementById("sections").innerHTML = (s.sections ?? []).map((sec) =>
+      `<section><h2>${esc(sec.title)}</h2>${esc(sec.body).split(/\n\n+/).map((p) => `<p>${p}</p>`).join("")}</section>`
+    ).join("");
+  }
+
+  async function boot() {
+    // Swatch buttons first, so applyLook can color them.
+    document.getElementById("swatches").innerHTML = Object.keys(ACCENTS).map((name) =>
+      `<button class="swatch" data-accent="${name}" title="${name}"></button>`).join("");
+
+    const [look, page, log] = await Promise.all([
+      connect(`/a/${LOOK}`),
+      connect(`/a/${PAGE}`, { tools: false }),
+      connect(`/a/${LOG}`, { tools: false }),
+    ]);
+
+    document.getElementById("controls").hidden = false;
+    if (typeof document.modelContext !== "undefined") document.getElementById("hint").hidden = false;
+
+    // The look, live. Every open page also reports each change to the log app;
+    // the log's seq dedupe makes duplicate reports from other tabs harmless.
+    let reported = 0;
+    look.state.watch((s) => {
+      applyLook(s);
+      if (s.seq > 0 && s.seq !== reported) {
+        reported = s.seq;
+        log.verbs.record({ seq: s.seq, look: { mode: s.mode, accent: s.accent, radius: s.radius } }).catch(() => {});
+      }
+    });
+
+    page.state.watch(renderSections);
+
+    log.state.watch((s) => {
+      const n = (s.entries ?? []).length;
+      document.getElementById("chip").textContent = n === 0 ? "the original look" : `the look has changed ${n} time${n === 1 ? "" : "s"}`;
+    });
+
+    document.getElementById("mode-light").onclick = () => look.verbs.set_mode({ mode: "light" });
+    document.getElementById("mode-dark").onclick = () => look.verbs.set_mode({ mode: "dark" });
+    document.getElementById("swatches").onclick = (e) => {
+      const accent = e.target.dataset?.accent;
+      if (accent) look.verbs.set_accent({ accent });
+    };
+    for (const b of document.querySelectorAll("[data-radius]")) {
+      b.onclick = () => look.verbs.set_radius({ radius: b.dataset.radius });
+    }
+    document.getElementById("reset").onclick = () => look.verbs.reset({});
+
+    document.getElementById("link-timeline").href = `/f/timeline?app=/a/${LOG}`;
+    document.getElementById("link-stats").href = `/f/stats?app=/a/${LOG}`;
+  }
+
+  boot().catch((e) => {
+    const p = document.createElement("p");
+    p.className = "boot-error";
+    p.textContent = `This face could not reach its apps: ${e.message}`;
+    document.body.appendChild(p);
+  });
+</script>
+</body>
+</html>

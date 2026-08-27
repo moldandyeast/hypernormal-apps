@@ -274,3 +274,25 @@ describe("router", () => {
     ws.close();
   });
 });
+
+describe("home face at /", () => {
+  it("serves the manual when no home face exists, and the stored home face once registered", async () => {
+    const asBrowser = { Accept: "text/html" };
+    const before = await SELF.fetch("https://x/", { headers: asBrowser });
+    expect(await before.text()).toMatch(/manual|Hypernormal/);
+    const put = await SELF.fetch("https://x/f/home", {
+      method: "PUT",
+      headers: owner,
+      body: JSON.stringify({ title: "Home", html: "<!doctype html><h1>site-face-marker</h1>", targets: [], visibility: "public" }),
+    });
+    expect(put.status).toBe(200);
+    const after = await SELF.fetch("https://x/", { headers: asBrowser });
+    expect(await after.text()).toMatch(/site-face-marker/);
+    // Agents (no text/html in Accept) still get the markdown manual.
+    const agent = await SELF.fetch("https://x/");
+    expect(agent.headers.get("Content-Type")).toMatch(/text\/markdown/);
+    expect(await agent.text()).not.toMatch(/site-face-marker/);
+    // Clean up so other tests' GET / expectations are unaffected.
+    await SELF.fetch("https://x/f/home", { method: "DELETE", headers: owner });
+  });
+});

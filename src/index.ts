@@ -201,7 +201,20 @@ async function handle(request: Request, env: Env): Promise<Response> {
 
   if (method === "GET" && path === "/") {
     const openMint = env.OPEN_MINT === "true";
-    if (wantsHtml(request)) return indexable(html(manualHtml(url.origin, openMint)));
+    if (wantsHtml(request)) {
+      // The site's front page is itself a face: when a face named "home" is
+      // registered, browsers get it instead of the built-in manual page.
+      // Agents (no text/html in Accept) always get the markdown manual below.
+      const res = await registry(env).fetch(new Request("https://do/faces/home"));
+      if (res.ok) {
+        const { face: rec } = (await res.json()) as { face: { html: string; visibility: string } };
+        if (rec.visibility !== "private" || owner) {
+          const document = env.WEBMCP_OT_TOKEN ? withOriginTrial(rec.html, env.WEBMCP_OT_TOKEN) : rec.html;
+          return indexable(html(document));
+        }
+      }
+      return indexable(html(manualHtml(url.origin, openMint)));
+    }
     return indexable(new Response(manualMarkdown(url.origin, openMint), {
       headers: { "Content-Type": "text/markdown; charset=utf-8" },
     }));

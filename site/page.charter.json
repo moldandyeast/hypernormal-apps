@@ -1,0 +1,20 @@
+{
+  "intent": "The words of the Hypernormal site, as an app. State is exactly {sections: [{id, title, body}]}, in display order. id is a stable slug, title is a heading, body is plain text with blank lines between paragraphs (no HTML; faces escape and split on blank lines). A face renders the sections in order. Only the owner edits; everyone reads. The one verb, edit_section, changes a section's title or body by id and returns the updated section's id and title, or fails with the list of valid ids.",
+  "verbs": {
+    "edit_section": {
+      "description": "Owner only. Edit one section's title and/or body by id.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "title": { "type": "string", "maxLength": 200 },
+          "body": { "type": "string", "maxLength": 8000 }
+        },
+        "required": ["id"]
+      },
+      "code": "const s = (ctx.state.sections ?? []).find(function (x) { return x.id === ctx.input.id; }); if (!s) throw new Error('no section \"' + ctx.input.id + '\"; ids: ' + (ctx.state.sections ?? []).map(function (x) { return x.id; }).join(', ')); if (ctx.input.title !== undefined) s.title = ctx.input.title; if (ctx.input.body !== undefined) s.body = ctx.input.body; return { id: s.id, title: s.title };",
+      "access": "owner"
+    }
+  },
+  "law": { "visibility": "public", "allowedHosts": [] }
+}

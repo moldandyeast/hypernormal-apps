@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The memory: stats</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font: 15px/1.6 ui-sans-serif, system-ui, sans-serif; color: #111; background: #fff;
+         max-width: 34rem; margin: 0 auto; padding: 3rem 1.25rem; }
+  h1 { font-size: 1.15rem; } .sub { color: #666; font-size: .85rem; margin: .3rem 0 1.6rem; }
+  h2 { font-size: .85rem; color: #666; margin: 1.4rem 0 .4rem; }
+  .row { display: flex; align-items: center; gap: .6rem; padding: .2rem 0; font-size: .85rem; }
+  .name { width: 4.5rem; } .bar { height: .8rem; border-radius: 2px; min-width: 2px; }
+  .n { color: #999; } .empty { color: #999; } a { color: #3B5BDB; }
+</style>
+</head>
+<body>
+  <h1>The memory: stats</h1>
+  <p class="sub">Another face over the same log app. Same state, different view. <a href="/">back</a></p>
+  <div id="out"></div>
+<script type="module">
+  import { connect } from "/runtime.js";
+  const ACCENTS = { indigo: "#3B5BDB", green: "#2B8A3E", orange: "#D9480F", violet: "#862E9C", red: "#C92A2A", teal: "#087F5B" };
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  function guardedAppUrl() {
+    const raw = new URLSearchParams(location.search).get("app");
+    const show = (m) => { document.getElementById("out").innerHTML = `<p class="empty">${esc(m)}</p>`; };
+    if (!raw) { show("Open this face with ?app=<same-origin app URL>, for example ?app=/a/<id>."); return null; }
+    let resolved; try { resolved = new URL(raw, location.origin); } catch { show("The app URL could not be parsed."); return null; }
+    if (resolved.origin !== location.origin) { show("This face only connects to apps on this installation."); return null; }
+    return resolved.href;
+  }
+
+  function bars(counts, colorFor, total) {
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([name, n]) =>
+      `<div class="row"><span class="name">${esc(name)}</span>
+        <span class="bar" style="background:${colorFor(name)};width:${(n / total) * 14}rem"></span>
+        <span class="n">${n}</span></div>`).join("");
+  }
+
+  const appUrl = guardedAppUrl();
+  if (appUrl) {
+    const app = await connect(appUrl, { tools: false });
+    app.state.watch((s) => {
+      const entries = s.entries ?? [];
+      if (entries.length === 0) {
+        document.getElementById("out").innerHTML = `<p class="empty">No changes recorded yet. Go change the look.</p>`;
+        return;
+      }
+      const count = (key) => entries.reduce((m, e) => ((m[e.look[key]] = (m[e.look[key]] ?? 0) + 1), m), {});
+      document.getElementById("out").innerHTML =
+        `<h2>${entries.length} changes recorded</h2>` +
+        `<h2>by accent</h2>` + bars(count("accent"), (n) => ACCENTS[n] ?? "#ccc", entries.length) +
+        `<h2>by mode</h2>` + bars(count("mode"), (n) => (n === "dark" ? "#111" : "#bbb"), entries.length) +
+        `<h2>by corners</h2>` + bars(count("radius"), () => "#888", entries.length);
+    });
+  }
+</script>
+</body>
+</html>

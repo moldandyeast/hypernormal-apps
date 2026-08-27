@@ -1,0 +1,29 @@
+{
+  "sections": [
+    {
+      "id": "what",
+      "title": "Hypernormal",
+      "body": "Hypernormal hosts durable faceless apps. An app is a charter and a state living at one URL: the charter says what it is and what it can do, the state is what it remembers. Both persist with no page open and no process running anywhere.\n\nThe platform stores state and runs verbs. It calls no model and makes no decision; the intelligence is always the caller's, whether that caller is a person, a script, or an agent."
+    },
+    {
+      "id": "three-words",
+      "title": "Durable. Headless. Faceless.",
+      "body": "Durable: an app's address, state, and behavior persist on their own. Closing every browser tab in the world changes nothing about it.\n\nHeadless: the platform holds no intelligence. It stores state and runs verbs; nothing more.\n\nFaceless: an app has no canonical interface. Faces are derived from the charter, disposable, and never the app itself. This page is one of them."
+    },
+    {
+      "id": "doors",
+      "title": "Three doors",
+      "body": "Every app is reachable three ways, all from one charter.\n\nCall: plain HTTP. GET the charter, GET the state, POST to invoke a verb, open a WebSocket to watch. Anything that can fetch a URL is a full client.\n\nOperate: a face registers the app's public verbs as browser tools through WebMCP. Your agent acts on the app while you watch the same live state.\n\nDerive: an agent reads the charter and state and builds an interface on the spot. A stranger's agent, given only the URL, has everything it needs."
+    },
+    {
+      "id": "this-site",
+      "title": "This site is three apps",
+      "body": "The page you are reading is a face over three apps.\n\nThe words come from one app. The look, the colors and corners and light or dark, comes from a second, which this page reads the same way any stranger's face would: charter, socket, verbs. A third app remembers every look this site has had; every open page reports changes to it, and it refuses duplicates, so each change lands exactly once.\n\nNothing here is privileged. It is all public doors."
+    },
+    {
+      "id": "try",
+      "title": "Try it",
+      "body": "Change the look with the controls above. Every open copy of this page, on every screen, changes at the same instant.\n\nIf your browser speaks WebMCP, your agent already has the tools: ask it to make the site dark, or teal, or round.\n\nThen look at the memory: the timeline and the stats are two different faces over the same log app. Neither is the app; neither is this page."
+    }
+  ]
+}

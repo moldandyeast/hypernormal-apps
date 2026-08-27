@@ -1,0 +1,33 @@
+{
+  "intent": "The memory of the Hypernormal site's look, as an app. State is exactly {entries: [{seq, at, look: {mode, accent, radius}}]}, oldest first, capped at 200 entries (oldest dropped). Each entry is a snapshot of the look app's state after one change: seq is that change's number from the look app, at is when this app recorded it (ms epoch), look holds the same enums the look app uses (mode light|dark; accent indigo|green|orange|violet|red|teal; radius sharp|soft|round). Recording is public and idempotent: record refuses a seq it has already stored, so any number of watching pages can report the same change and it lands exactly once. A fresh mint starts at {entries: []}. Good faces over this app: a timeline (entries newest first, with time and a color swatch) or stats (counts per accent, per mode, total changes). This app never changes the look; it only remembers it.",
+  "verbs": {
+    "record": {
+      "description": "Record one look-change snapshot. Refused (recorded: false) if this seq is already stored, so duplicate reports are harmless.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "seq": { "type": "integer", "minimum": 1 },
+          "look": {
+            "type": "object",
+            "properties": {
+              "mode": { "type": "string", "enum": ["light", "dark"] },
+              "accent": { "type": "string", "enum": ["indigo", "green", "orange", "violet", "red", "teal"] },
+              "radius": { "type": "string", "enum": ["sharp", "soft", "round"] }
+            },
+            "required": ["mode", "accent", "radius"]
+          }
+        },
+        "required": ["seq", "look"]
+      },
+      "code": "const e = ctx.state.entries = ctx.state.entries ?? []; if (e.some(function (x) { return x.seq === ctx.input.seq; })) return { recorded: false, count: e.length }; e.push({ seq: ctx.input.seq, at: ctx.now, look: ctx.input.look }); while (e.length > 200) e.shift(); return { recorded: true, count: e.length };",
+      "access": "public"
+    },
+    "clear": {
+      "description": "Empty the memory. Owner only.",
+      "inputSchema": { "type": "object", "properties": {} },
+      "code": "ctx.state.entries = []; return { cleared: true };",
+      "access": "owner"
+    }
+  },
+  "law": { "visibility": "public", "allowedHosts": [] }
+}
