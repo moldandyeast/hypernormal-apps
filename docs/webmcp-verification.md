@@ -115,7 +115,28 @@ at `/f/shared-list`, and opened in a WebMCP-enabled Chrome at
 
 This confirms the registration half of the Operate door: an app's public verbs
 register as WebMCP tools on the installation's origin, through the real
-`document.modelContext` API, with owner-only verbs excluded. The execution half
-(`executeTool` mutating the durable app) is the immediate follow-up check.
+`document.modelContext` API, with owner-only verbs excluded.
+
+**Execution confirmed too.** `document.modelContext.executeTool(addTool, input)`
+was run from the console (input passed as a JSON string, which is the format
+Chrome's manual `executeTool` entry point parses; a real agent's structured
+arguments are parsed by Chrome the same way before our `execute` callback
+receives them, so the runtime handles both). The tool call ran the `add` verb in
+the sandbox, wrote state atomically, and returned the MCP result envelope:
+
+```
+{"content":[{"type":"text","text":"{\"id\":\"...\",\"text\":\"added via WebMCP tool\",\"done\":false}"}]}
+```
+
+The new item appeared in the live face immediately, confirming the full loop:
+WebMCP tool call -> runtime -> Worker -> verb execution -> atomic state write ->
+WebSocket broadcast -> re-render. This is the complete Operate door working end
+to end in a real WebMCP-enabled Chrome.
+
+One implementation note for a future refinement: Chrome's manual `executeTool`
+wants the input as a JSON string. Our projected `inputSchema` could add
+`additionalProperties: false` at projection time so an agent that sends an extra
+field gets a schema-level rejection rather than a hard parse error; deferred, not
+blocking.
 
 Chrome version: (record from `chrome://version/`).
