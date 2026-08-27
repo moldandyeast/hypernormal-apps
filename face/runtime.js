@@ -96,7 +96,11 @@ export async function connect(appUrl, options = {}) {
     if (options.tools === false) return;
     const docOrigin = typeof self !== "undefined" && self.location ? self.location.origin : undefined;
     if (!mayRegisterTools(appUrl, docOrigin, options)) {
-      console.warn('Hypernormal: not registering WebMCP tools for a cross-origin app; pass { tools: "cross-origin" } to connect() to override.');
+      console.warn(
+        docOrigin
+          ? 'Hypernormal: not registering WebMCP tools for a cross-origin app; pass { tools: "cross-origin" } to connect() to override.'
+          : "Hypernormal: not registering WebMCP tools without a document origin to register onto.",
+      );
       return;
     }
     if (toolController) toolController.abort();
