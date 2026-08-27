@@ -4,9 +4,39 @@ This document describes how to verify that the WebMCP browser API (`document.mod
 
 ## Prerequisites
 
-- Google Chrome browser (Chromium-based, version 130+)
-- The `webmcp-proof.html` file in the `examples/` directory
-- Access to the Model Context Tool Inspector extension (available on Chrome Web Store)
+- Google Chrome **149 or newer** (the WebMCP origin trial landed in Chrome 149;
+  the `chrome://flags/#enable-webmcp-testing` flag wants 150 or newer). If the
+  flag search in `chrome://flags` finds nothing for "webmcp", the build is too
+  old; use the latest stable, or Chrome Dev/Canary.
+- Confirm the version at `chrome://version/` before anything else.
+
+## Fastest check: the DevTools console (no extension needed)
+
+The Model Context Tool Inspector extension is a nicer UI, but the definitive
+check needs only the browser console. On any page that registered tools, open
+DevTools (F12) and run:
+
+```js
+(async () => {
+  if (!('modelContext' in document)) {
+    console.log('WebMCP is NOT enabled in this Chrome. Check the version (149+) and the flag.');
+    return;
+  }
+  const tools = await document.modelContext.getTools();
+  console.log('Registered tools:', tools.map(t => ({ name: t.name, description: t.description })));
+  if (tools.length) {
+    const result = await document.modelContext.executeTool(tools[0], { text: 'from-webmcp' });
+    console.log('executeTool(first) result:', result);
+  }
+})();
+```
+
+`'modelContext' in document` false means WebMCP is not active in this browser
+(a version or flag problem, not a page problem). A non-empty `getTools()` on a
+Hypernormal face means the same-origin bridge works. `executeTool` running the
+first tool proves an agent can drive the app.
+
+## Full check with the extension
 
 ## Verification Steps
 
@@ -68,3 +98,24 @@ Record your verification results in the Log section below, including:
 
 ## Log
 
+### 2026-08-27 — WebMCP tool registration confirmed in Chrome
+
+Verified against a live installation (`wrangler dev` at `localhost:8787`), not
+the static proof page. The shared-list example was minted, its face registered
+at `/f/shared-list`, and opened in a WebMCP-enabled Chrome at
+`/f/shared-list?app=/a/<id>`.
+
+- The face rendered live state (items added in the browser appeared
+  immediately), confirming the WebSocket broadcast layer end to end.
+- In the DevTools console, `await document.modelContext.getTools()` returned
+  `['add', 'remove', 'toggle']` — exactly the charter's three `public` verbs.
+- The charter's fourth verb, `clear` (`access: owner`), was correctly **absent**
+  from the registered tools, confirming the public-only filter in
+  `toolsFromCharter`.
+
+This confirms the registration half of the Operate door: an app's public verbs
+register as WebMCP tools on the installation's origin, through the real
+`document.modelContext` API, with owner-only verbs excluded. The execution half
+(`executeTool` mutating the durable app) is the immediate follow-up check.
+
+Chrome version: (record from `chrome://version/`).
