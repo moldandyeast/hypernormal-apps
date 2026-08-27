@@ -3,6 +3,7 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-07-29",
   "workers_dev": true,
+  "routes": [{ "pattern": "hypernormal.moldandyeast.com", "custom_domain": true }],
   "durable_objects": {
     "bindings": [
       { "name": "APP", "class_name": "App" },
