@@ -3,49 +3,106 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The memory: timeline</title>
+<title>the memory · timeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --bg: #FFFFFF; --fg: #26282B; --body: #55595F; --label: #7A8087;
+    --comment: #6E747B; --line: #E8E8E8; --accent: #3B5BDB; --radius: 8px;
+  }
   * { box-sizing: border-box; margin: 0; }
-  body { font: 15px/1.6 ui-sans-serif, system-ui, sans-serif; color: #111; background: #fff;
-         max-width: 34rem; margin: 0 auto; padding: 3rem 1.25rem; }
-  h1 { font-size: 1.15rem; } .sub { color: #666; font-size: .85rem; margin: .3rem 0 1.6rem; }
-  ol { list-style: none; } li { display: flex; gap: .7rem; align-items: baseline; padding: .45rem 0; border-top: 1px solid #eee; }
-  .dot { width: .8rem; height: .8rem; border-radius: 50%; flex-shrink: 0; align-self: center; border: 1px solid #ddd; }
-  .when { color: #999; font-size: .78rem; margin-left: auto; white-space: nowrap; }
-  .empty { color: #999; } a { color: #3B5BDB; }
+  body {
+    background: var(--bg); color: var(--body);
+    font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 14px; line-height: 24px;
+    max-width: 600px; margin: 0 auto; padding: 56px 24px 56px;
+    transition: background-color .35s ease, color .35s ease;
+  }
+  a { color: var(--fg); text-underline-offset: 3px; }
+  a:hover { color: var(--accent); }
+  .kicker { font-size: 13px; color: var(--label); display: block; margin-bottom: 12px; }
+  h1 { font-size: 22px; line-height: 30px; font-weight: 500; color: var(--fg); }
+  .claimrow { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: baseline; margin: 10px 0 28px; }
+  .claimrow .back { font-size: 13px; white-space: nowrap; }
+  ol { list-style: none; border-top: 1px solid var(--line); }
+  li { display: flex; gap: 12px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .dot { width: 10px; height: 10px; border-radius: calc(var(--radius) / 3); flex-shrink: 0; align-self: center; }
+  .what { color: var(--fg); }
+  .when { color: var(--label); margin-left: auto; white-space: nowrap; }
+  .comment { font-size: 13px; color: var(--comment); margin-top: 16px; }
+  .explore { display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; font-size: 13px; margin-top: 20px; color: var(--label); }
+  .explore a { color: var(--fg); }
 </style>
 </head>
 <body>
-  <h1>The memory: timeline</h1>
-  <p class="sub">One face over the log app: every look this site has had, newest first. <a href="/">back</a></p>
+  <span class="kicker">a face over the memory</span>
+  <h1>timeline</h1>
+  <div class="claimrow">
+    <span>every look this site has had, newest first.</span>
+    <a class="back" href="/">← hypernormal apps</a>
+  </div>
   <ol id="list"></ol>
+  <p class="comment"># this face wears whatever the newest entry says. the data is the palette.</p>
+  <div class="explore" id="links" hidden>
+    <span>↳</span><a id="link-app" href="#">the app, raw</a><span>·</span><a id="link-stats" href="#">face two: stats</a>
+  </div>
 <script type="module">
   import { connect } from "/runtime.js";
-  const ACCENTS = { indigo: "#3B5BDB", green: "#2B8A3E", orange: "#D9480F", violet: "#862E9C", red: "#C92A2A", teal: "#087F5B" };
+  const ACCENTS = {
+    indigo: { light: "#3B5BDB", dark: "#91A7FF" },
+    green:  { light: "#2B8A3E", dark: "#8CE99A" },
+    orange: { light: "#D9480F", dark: "#FFC078" },
+    violet: { light: "#862E9C", dark: "#E599F7" },
+    red:    { light: "#C92A2A", dark: "#FFA8A8" },
+    teal:   { light: "#087F5B", dark: "#63E6BE" },
+  };
+  const BASE = {
+    light: { bg: "#FFFFFF", fg: "#26282B", body: "#55595F", label: "#7A8087", comment: "#6E747B", line: "#E8E8E8" },
+    dark:  { bg: "#0A0A0A", fg: "#C6CAD0", body: "#8F949C", label: "#6B717A", comment: "#767C84", line: "#232323" },
+  };
+  const RADII = { sharp: "0px", soft: "8px", round: "16px" };
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const ago = (t) => { const s = Math.max(1, Math.round((Date.now() - t) / 1000));
     if (s < 60) return `${s}s ago`; if (s < 3600) return `${Math.round(s / 60)}m ago`;
     if (s < 86400) return `${Math.round(s / 3600)}h ago`; return `${Math.round(s / 86400)}d ago`; };
 
+  // The face derives its own look from the newest look it displays; it never
+  // touches the look app. Falls back to the visitor's color scheme when the
+  // memory is empty.
+  function applyLook(last) {
+    const mode = last?.mode ?? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const root = document.documentElement.style;
+    for (const [k, v] of Object.entries(BASE[mode] ?? BASE.light)) root.setProperty(`--${k}`, v);
+    root.setProperty("--accent", (ACCENTS[last?.accent] ?? ACCENTS.indigo)[mode]);
+    root.setProperty("--radius", RADII[last?.radius] ?? RADII.soft);
+    return mode;
+  }
+
   function guardedAppUrl() {
     const raw = new URLSearchParams(location.search).get("app");
-    const show = (m) => { document.getElementById("list").innerHTML = `<li class="empty">${esc(m)}</li>`; };
-    if (!raw) { show("Open this face with ?app=<same-origin app URL>, for example ?app=/a/<id>."); return null; }
-    let resolved; try { resolved = new URL(raw, location.origin); } catch { show("The app URL could not be parsed."); return null; }
-    if (resolved.origin !== location.origin) { show("This face only connects to apps on this installation."); return null; }
+    const show = (m) => { document.getElementById("list").innerHTML = `<li style="border: 0; color: var(--comment);"># ${esc(m)}</li>`; };
+    if (!raw) { show("open this face with ?app=<same-origin app url>, for example ?app=/a/<id>."); return null; }
+    let resolved; try { resolved = new URL(raw, location.origin); } catch { show("the app url could not be parsed."); return null; }
+    if (resolved.origin !== location.origin) { show("this face only connects to apps on this installation."); return null; }
     return resolved.href;
   }
 
   const appUrl = guardedAppUrl();
   if (appUrl) {
+    document.getElementById("links").hidden = false;
+    document.getElementById("link-app").href = `${new URL(appUrl).pathname}/state`;
+    document.getElementById("link-stats").href = `/f/stats?app=${new URL(appUrl).pathname}`;
     const app = await connect(appUrl, { tools: false });
     app.state.watch((s) => {
       const entries = (s.entries ?? []).slice().reverse();
+      const mode = applyLook(entries[0]?.look);
       document.getElementById("list").innerHTML = entries.length === 0
-        ? `<li class="empty">No changes recorded yet. Go change the look.</li>`
-        : entries.map((e) => `<li><span class="dot" style="background:${ACCENTS[e.look.accent] ?? "#ccc"}"></span>
-            <span>${esc(e.look.accent)} &middot; ${esc(e.look.mode)} &middot; ${esc(e.look.radius)}</span>
-            <span class="when">#${e.seq} &middot; ${ago(e.at)}</span></li>`).join("");
+        ? `<li style="border: 0; color: var(--comment);"># no changes recorded yet. go change the look.</li>`
+        : entries.map((e) => `<li><span class="dot" style="background:${(ACCENTS[e.look.accent] ?? ACCENTS.indigo)[mode]}"></span>
+            <span class="what">${esc(e.look.accent)} · ${esc(e.look.mode)} · ${esc(e.look.radius)}</span>
+            <span class="when">#${e.seq} · ${ago(e.at)}</span></li>`).join("");
     });
   }
 </script>

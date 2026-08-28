@@ -39,7 +39,7 @@ console.log(`words:    ${BASE}/a/${ids.page}/state replaced from site/page.state
 
 await call("PUT", "/f/home", { name: "home", title: "hypernormal apps", html: substitute(site("home.html")), targets: [ids.page, ids.look, ids.log], visibility: "public" });
 console.log(`face:     ${BASE}/f/home  (served at ${BASE}/ for browsers)`);
-await call("PUT", "/f/timeline", { name: "timeline", title: "The memory: timeline", html: site("timeline.html"), targets: [ids.log], visibility: "public" });
+await call("PUT", "/f/timeline", { name: "timeline", title: "the memory · timeline", html: site("timeline.html"), targets: [ids.log], visibility: "public" });
 console.log(`face:     ${BASE}/f/timeline?app=/a/${ids.log}`);
-await call("PUT", "/f/stats", { name: "stats", title: "The memory: stats", html: site("stats.html"), targets: [ids.log], visibility: "public" });
+await call("PUT", "/f/stats", { name: "stats", title: "the memory · stats", html: site("stats.html"), targets: [ids.log], visibility: "public" });
 console.log(`face:     ${BASE}/f/stats?app=/a/${ids.log}`);
