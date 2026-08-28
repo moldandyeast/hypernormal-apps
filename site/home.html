@@ -103,6 +103,13 @@
   .copybtn { font-size: 12px; padding: 2px 8px; }
   footer { border-top: 1px solid var(--line); padding-top: 16px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--label); }
   .boot-error { color: var(--comment); margin-top: 24px; }
+  .peer {
+    position: absolute; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent); opacity: 0; pointer-events: none; z-index: 9;
+    transition: left .15s linear, top .15s linear, opacity .6s ease;
+  }
+  .peer.on { opacity: .35; }
+  button:disabled { opacity: .5; cursor: default; }
   @media (max-width: 640px) {
     .map .grid { flex-direction: column; align-items: stretch; }
     .panel .row { flex-direction: column; gap: 2px; }
@@ -295,14 +302,14 @@
 
     lenses: () => `
       <div class="lenses">
-        <div class="lens">face one · timeline<div class="ticks" id="x-ticks"></div><span id="x-count"></span></div>
+        <div class="lens"><div class="panelhead"><span>face one · timeline</span><button class="copybtn" id="x-replay">replay ↻</button></div><div class="ticks" id="x-ticks"></div><span id="x-count"></span></div>
         <div class="lens">face two · stats
           <div class="nums">
             <span><span class="num" id="x-dark"></span><br>dark</span>
             <span><span class="num" id="x-fav"></span><br>favourite accent</span>
           </div>counted live from the log</div>
       </div>
-      <p class="comment"># two faces over the memory. neither is the app.</p>
+      <p class="comment"># two faces over the memory. neither is the app. replay repaints only your screen; the shared look stays untouched.</p>
       ${explore(
         link(`/f/timeline?app=/a/${LOG}`, "face one, live: /timeline"),
         link(`/f/stats?app=/a/${LOG}`, "face two, live: /stats"),
@@ -346,6 +353,8 @@
     if (copy) copy.onclick = () => {
       navigator.clipboard.writeText(promptText()).then(() => { copy.textContent = "copied"; setTimeout(() => { copy.textContent = "copy"; }, 1500); });
     };
+    const rp = document.getElementById("x-replay");
+    if (rp) rp.onclick = replay;
     updateLive();
   }
 
@@ -359,7 +368,7 @@
       set("x-seq", (el) => {
         el.textContent = ls.seq > 0 ? `seq ${ls.seq} · someone set this look before you arrived` : "seq 0 · the original look, untouched so far";
       });
-      document.getElementById("live").textContent = `● live · seq ${ls.seq}`;
+      renderLiveLine();
     }
     if (ch) {
       set("x-charter", (el) => {
@@ -422,6 +431,64 @@
     }
   }
 
+  // Presence: other readers, faintly. Signals are relayed live and never
+  // stored; a peer that goes quiet for fifty seconds stops counting.
+  const myId = crypto.randomUUID().slice(0, 8);
+  const peers = new Map();
+  function peersHere() {
+    const now = Date.now();
+    for (const [id, p] of peers) {
+      if (now - p.at > 50000) { p.el?.remove(); peers.delete(id); }
+    }
+    return peers.size + 1;
+  }
+  function renderLiveLine() {
+    const el = document.getElementById("live");
+    const ls = look?.state.value;
+    if (!el || !ls || replaying) return;
+    const n = peersHere();
+    el.textContent = `● live · seq ${ls.seq} · ${n === 1 ? "you are alone here" : `${n} here`}`;
+  }
+  function paintPeer(msg) {
+    if (!msg.id || msg.id === myId) return;
+    let p = peers.get(msg.id);
+    if (!p) { p = {}; peers.set(msg.id, p); }
+    p.at = Date.now();
+    if (msg.kind === "cursor" && typeof msg.x === "number" && typeof msg.y === "number") {
+      if (!p.el) { p.el = document.createElement("div"); p.el.className = "peer"; document.body.appendChild(p.el); }
+      const rect = document.body.getBoundingClientRect();
+      p.el.style.left = `${rect.left + window.scrollX + Math.min(1, Math.max(0, msg.x)) * rect.width}px`;
+      p.el.style.top = `${Math.min(1, Math.max(0, msg.y)) * document.documentElement.scrollHeight}px`;
+      p.el.classList.add("on");
+      clearTimeout(p.fade);
+      p.fade = setTimeout(() => p.el?.classList.remove("on"), 6000);
+    }
+    renderLiveLine();
+  }
+
+  // Replay: the memory, washed over this screen only. Read-only; the shared
+  // look is never touched.
+  let replaying = false;
+  async function replay() {
+    const entries = log?.state.value?.entries ?? [];
+    const btn = document.getElementById("x-replay");
+    const live = document.getElementById("live");
+    if (replaying || entries.length === 0) return;
+    replaying = true;
+    if (btn) btn.disabled = true;
+    const step = Math.min(120, Math.max(35, Math.round(8000 / entries.length)));
+    for (const e of entries) {
+      applyLook(e.look);
+      if (live) { live.textContent = `↻ replay · #${e.seq}, your screen only`; live.style.color = "var(--label)"; }
+      await new Promise((r) => setTimeout(r, step));
+    }
+    replaying = false;
+    if (live) live.style.color = "";
+    if (btn) btn.disabled = false;
+    applyLook(look.state.value);
+    updateLive();
+  }
+
   async function boot() {
     // Swatch buttons first, so applyLook can color them.
     document.getElementById("swatches").innerHTML = Object.keys(ACCENTS).map((name) =>
@@ -441,16 +508,33 @@
     // the log's seq dedupe makes duplicate reports from other tabs harmless.
     let reported = 0;
     look.state.watch((s) => {
-      applyLook(s);
+      if (!replaying) applyLook(s);
       if (s.seq > 0 && s.seq !== reported) {
         reported = s.seq;
         log.verbs.record({ seq: s.seq, look: { mode: s.mode, accent: s.accent, radius: s.radius } }).catch(() => {});
       }
-      updateLive();
+      if (!replaying) updateLive();
     });
 
     page.state.watch(renderSections);
-    log.state.watch(updateLive);
+    log.state.watch(() => { if (!replaying) updateLive(); });
+
+    // Presence out: a heartbeat every twenty seconds, a cursor while it moves.
+    look.presence.watch(paintPeer);
+    look.presence.emit({ kind: "here", id: myId });
+    setInterval(() => { look.presence.emit({ kind: "here", id: myId }); renderLiveLine(); }, 20000);
+    let lastEmit = 0;
+    addEventListener("mousemove", (e) => {
+      const now = Date.now();
+      if (now - lastEmit < 120) return;
+      lastEmit = now;
+      const rect = document.body.getBoundingClientRect();
+      look.presence.emit({
+        kind: "cursor", id: myId,
+        x: (e.pageX - (rect.left + window.scrollX)) / rect.width,
+        y: e.pageY / document.documentElement.scrollHeight,
+      });
+    });
 
     document.getElementById("mode-light").onclick = () => look.verbs.set_mode({ mode: "light" });
     document.getElementById("mode-dark").onclick = () => look.verbs.set_mode({ mode: "dark" });
