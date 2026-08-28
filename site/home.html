@@ -3,62 +3,121 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hypernormal</title>
-<meta name="description" content="Durable faceless apps. A charter and a state at one URL, reachable by people and agents through the same three doors.">
+<title>hypernormal apps</title>
+<meta name="description" content="Durable faceless apps. A charter and a state at one URL, reachable by people and agents through the same three doors. A white paper that runs.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #FFFFFF; --fg: #111111; --muted: #666666; --line: #E5E5E5;
-    --surface: #F7F7F7; --accent: #3B5BDB; --radius: 8px;
+    --bg: #FFFFFF; --fg: #26282B; --body: #55595F; --label: #7A8087;
+    --comment: #6E747B; --line: #E8E8E8; --panel-line: #E5E5E5; --panel: #F7F7F7;
+    --accent: #3B5BDB; --radius: 8px;
   }
   * { box-sizing: border-box; margin: 0; }
   html { scroll-behavior: smooth; }
   body {
-    background: var(--bg); color: var(--fg);
-    font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", sans-serif;
-    max-width: 42rem; margin: 0 auto; padding: 3.5rem 1.25rem 5rem;
+    background: var(--bg); color: var(--body);
+    font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 14px; line-height: 24px;
+    max-width: 768px; margin: 0 auto; padding: 64px 24px 64px;
     transition: background-color .35s ease, color .35s ease;
   }
-  a { color: var(--accent); text-underline-offset: 3px; }
-  h1 { font-size: 1.7rem; letter-spacing: -0.01em; }
-  h2 { font-size: 1.1rem; margin: 2.6rem 0 .6rem; letter-spacing: -0.005em; }
-  p { margin: .8rem 0; }
-  .lede { color: var(--muted); margin-top: .4rem; }
-  .controls {
-    margin: 2rem 0 0; padding: 1rem; background: var(--surface);
-    border: 1px solid var(--line); border-radius: var(--radius);
-    display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; align-items: center;
-    transition: background-color .35s ease, border-radius .35s ease;
+  a { color: var(--fg); text-underline-offset: 3px; }
+  a:hover { color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  h1 {
+    font-size: clamp(30px, 6vw, 44px); font-weight: 500; letter-spacing: -0.02em;
+    color: var(--fg); line-height: 1.1; display: inline-flex; align-items: center; gap: 14px;
   }
-  .controls .group { display: flex; gap: .4rem; align-items: center; }
-  .controls .label { font-size: .78rem; color: var(--muted); margin-right: .1rem; }
+  h1 .cursor { display: inline-block; width: 0.5em; height: 1em; background: var(--label); opacity: .5; }
+  h2 { font-size: 22px; line-height: 30px; font-weight: 500; color: var(--fg); }
+  p { margin: 0 0 16px; }
+  section p:last-of-type { margin-bottom: 0; }
+  .kicker { font-size: 13px; color: var(--label); display: block; margin-bottom: 16px; }
+  .comment { font-size: 13px; color: var(--comment); margin-top: 12px; }
+  .masthead { display: flex; flex-direction: column; gap: 14px; padding-bottom: 40px; }
+  .claimrow { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+  .claim { color: var(--body); }
+  .live { font-size: 13px; color: var(--accent); white-space: nowrap; }
+  .panel {
+    border: 1px solid var(--panel-line); background: var(--panel); border-radius: var(--radius);
+    padding: 16px 18px; margin-top: 16px; font-size: 13px; line-height: 22px;
+    overflow-x: auto; transition: background-color .35s ease, border-radius .35s ease;
+  }
+  .panel.bare { background: transparent; }
+  .panel.scene { border-style: dashed; background: transparent; }
+  .panel .dim { color: var(--label); }
+  .panel .out { color: var(--fg); }
+  .panel pre { font: inherit; white-space: pre-wrap; word-break: break-word; }
+  .panel .row { display: flex; gap: 20px; align-items: baseline; margin-top: 10px; }
+  .panel .row .lane { color: var(--label); width: 190px; flex-shrink: 0; }
+  .panel .row .say { color: var(--fg); }
+  .panelhead { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+  .tag { font-size: 11px; color: var(--label); }
+  .explore { display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; font-size: 13px; margin-top: 14px; color: var(--label); }
+  .explore a { color: var(--fg); }
+  .explore a:hover { color: var(--accent); }
+  .controls {
+    border: 1px solid var(--panel-line); border-radius: var(--radius); padding: 14px 16px;
+    display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; margin-top: 10px;
+    transition: border-radius .35s ease;
+  }
+  .controls .group { display: flex; gap: 8px; align-items: center; }
+  .controls .label { font-size: 13px; color: var(--label); }
   button {
-    font: inherit; font-size: .85rem; color: var(--fg);
-    background: var(--bg); border: 1px solid var(--line);
-    border-radius: var(--radius); padding: .3rem .7rem; cursor: pointer;
+    font: inherit; font-size: 13px; color: var(--label);
+    background: transparent; border: 1px solid var(--panel-line);
+    border-radius: var(--radius); padding: 3px 9px; cursor: pointer;
     transition: background-color .35s ease, border-radius .35s ease, border-color .2s ease;
   }
-  button:hover { border-color: var(--accent); }
-  button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-  .swatch {
-    width: 1.5rem; height: 1.5rem; padding: 0; border: 1px solid var(--line);
-    border-radius: var(--radius);
+  button:hover { border-color: var(--accent); color: var(--fg); }
+  button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .swatch { width: 16px; height: 16px; padding: 0; border: 1px solid transparent; border-radius: var(--radius); }
+  .swatch[aria-pressed="true"] { border-color: var(--fg); box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--fg); }
+  .map { border-top: 2px solid var(--fg); padding: 28px 0 40px; }
+  .map .grid { display: flex; gap: 28px; align-items: center; margin-top: 16px; }
+  .map .appbox { border: 1px solid var(--label); border-radius: var(--radius); padding: 16px 20px; flex-shrink: 0; }
+  .map .appbox .name { color: var(--fg); font-weight: 500; }
+  .map .appbox .sub { font-size: 12px; color: var(--label); }
+  .map .doors { display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .map .door { display: flex; gap: 12px; align-items: baseline; font-size: 13px; }
+  .map .door .tick { width: 28px; height: 1px; background: var(--label); opacity: .5; flex-shrink: 0; align-self: center; }
+  .map .door a { color: var(--fg); font-weight: 500; width: 76px; flex-shrink: 0; }
+  .map .door .what { color: var(--label); }
+  section.chapter { border-top: 1px solid var(--line); padding: 36px 0 52px; }
+  section.chapter h2 { margin-bottom: 16px; }
+  .liveblock { border-left: 2px solid var(--accent); padding: 2px 0 2px 18px; margin-top: 16px; }
+  .liveblock div { color: var(--fg); }
+  .lenses { display: flex; gap: 14px; margin-top: 16px; }
+  .lens { flex: 1; border: 1px solid var(--panel-line); background: var(--panel); border-radius: var(--radius); padding: 14px 16px; font-size: 12px; color: var(--label); transition: background-color .35s ease, border-radius .35s ease; }
+  .lens .ticks { display: flex; gap: 4px; align-items: flex-end; height: 40px; margin: 10px 0; }
+  .lens .ticks i { width: 8px; border-radius: 2px; display: block; }
+  .lens .nums { display: flex; gap: 24px; margin: 8px 0 10px; }
+  .lens .num { font-size: 22px; font-weight: 500; color: var(--fg); line-height: 1.3; }
+  .split { display: flex; gap: 20px; margin-top: 16px; }
+  .split > div { flex: 1; padding: 14px 16px; border-radius: var(--radius); font-size: 12px; line-height: 19px; color: var(--label); }
+  .split .church { border: 1px dashed var(--label); }
+  .split .state { border: 1px solid var(--label); }
+  .split .head { color: var(--fg); font-weight: 500; font-size: 13px; margin-bottom: 4px; }
+  .copybtn { font-size: 12px; padding: 2px 8px; }
+  footer { border-top: 1px solid var(--line); padding-top: 16px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--label); }
+  .boot-error { color: var(--comment); margin-top: 24px; }
+  @media (max-width: 640px) {
+    .map .grid { flex-direction: column; align-items: stretch; }
+    .panel .row { flex-direction: column; gap: 2px; }
+    .panel .row .lane { width: auto; }
+    .lenses, .split { flex-direction: column; }
   }
-  .swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
-  .chip { font-size: .8rem; color: var(--muted); margin-left: auto; }
-  .hint {
-    margin-top: .8rem; font-size: .8rem; color: var(--muted);
-    border-left: 3px solid var(--accent); padding-left: .8rem;
-    transition: border-color .35s ease;
-  }
-  footer { margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--line); font-size: .85rem; color: var(--muted); }
-  footer a { margin-right: 1.1rem; }
-  .boot-error { color: var(--muted); margin-top: 2rem; }
 </style>
 </head>
 <body>
-  <header>
-    <h1>Hypernormal</h1>
-    <p class="lede">Durable faceless apps. This page is three of them.</p>
+  <header class="masthead">
+    <h1>hypernormal apps <span class="cursor"></span></h1>
+    <div class="claimrow">
+      <span class="claim">durable faceless apps. a white paper that runs.</span>
+      <span class="live" id="live" hidden>● live</span>
+    </div>
     <div class="controls" id="controls" hidden>
       <span class="group"><span class="label">mode</span>
         <button id="mode-light">light</button><button id="mode-dark">dark</button>
@@ -68,23 +127,41 @@
         <button data-radius="sharp">sharp</button><button data-radius="soft">soft</button><button data-radius="round">round</button>
       </span>
       <span class="group"><button id="reset">reset</button></span>
-      <span class="chip" id="chip"></span>
     </div>
-    <p class="hint" id="hint" hidden>Your browser speaks WebMCP: this page has registered the look as tools
-      (<code>set_mode</code>, <code>set_accent</code>, <code>set_radius</code>, <code>reset</code>).
-      Ask your agent to restyle the site; everyone watching sees it.</p>
+    <p class="comment"># change something. no explanation yet.</p>
+    <p class="comment" id="hint" hidden># your browser speaks webmcp. the tools are already registered; ask your agent.</p>
+    <noscript><p class="comment"># this face needs javascript. agents: curl this URL for the manual instead.</p></noscript>
   </header>
+
+  <div class="map">
+    <span class="kicker">the map</span>
+    <div class="grid">
+      <div class="appbox">
+        <div class="name">an app</div>
+        <div class="sub">charter + state, at one url</div>
+      </div>
+      <div class="doors">
+        <span class="door"><span class="tick"></span><a href="#ch-separation">call</a><span class="what">speak http and json to it · chapter 03</span></span>
+        <span class="door"><span class="tick"></span><a href="#ch-tools">operate</a><span class="what">its verbs become your agent's tools · chapter 06</span></span>
+        <span class="door"><span class="tick"></span><a href="#ch-derived">derive</a><span class="what">build your own face over it · chapter 08</span></span>
+      </div>
+    </div>
+    <p class="comment"># three doors into every app, no door more official than another. this page walks all three.</p>
+  </div>
+
   <main id="sections"></main>
+
   <footer id="footer">
-    <a id="link-timeline" href="#">the memory: timeline</a>
-    <a id="link-stats" href="#">stats</a>
-    <a href="https://github.com/moldandyeast/kohlhaas">source</a>
+    <span>hypernormal apps · an installation by <a href="https://moldandyeast.com">moldandyeast</a></span>
+    <span>solid panels are real output · dashed is illustration · # is commentary</span>
     <span>agents: <code>curl</code> this URL for the manual</span>
   </footer>
 <script type="module">
   import { connect } from "/runtime.js";
 
   const LOOK = "__LOOK_ID__", PAGE = "__PAGE_ID__", LOG = "__LOG_ID__";
+  const REPO = "https://github.com/moldandyeast/kohlhaas";
+  const blob = (p) => `${REPO}/blob/main/${p}`;
 
   // The palette, mirrored from the look app's charter intent. The charter is
   // the source of truth; this map only turns its names into pixels.
@@ -96,14 +173,25 @@
     red:    { light: "#C92A2A", dark: "#FFA8A8" },
     teal:   { light: "#087F5B", dark: "#63E6BE" },
   };
+  // This face's own muted greys, one set per mode. A face is free to have a
+  // taste of its own; the charter governs meaning, not typography.
   const BASE = {
-    light: { bg: "#FFFFFF", fg: "#111111", muted: "#666666", line: "#E5E5E5", surface: "#F7F7F7" },
-    dark:  { bg: "#111111", fg: "#EDEDED", muted: "#999999", line: "#2A2A2A", surface: "#1B1B1B" },
+    light: { bg: "#FFFFFF", fg: "#26282B", body: "#55595F", label: "#7A8087", comment: "#6E747B", line: "#E8E8E8", "panel-line": "#E5E5E5", panel: "#F7F7F7" },
+    dark:  { bg: "#0A0A0A", fg: "#C6CAD0", body: "#8F949C", label: "#6B717A", comment: "#767C84", line: "#232323", "panel-line": "#262626", panel: "#0F0F0F" },
   };
   const RADII = { sharp: "0px", soft: "8px", round: "16px" };
+  const KICKERS = {
+    claim: "01 · the claim", file: "02 · the file, replaced", separation: "03 · the separation",
+    hood: "04 · the hood", outside: "05 · the outside", tools: "06 · the tools",
+    lenses: "07 · the lenses", derived: "08 · the derived", opening: "09 · the opening", proof: "10 · the proof",
+  };
 
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const short = (id) => `${id.slice(0, 6)}…${id.slice(-5)}`;
+  const HOST = location.host;
+
+  let look, page, log;
 
   function applyLook(s) {
     const root = document.documentElement.style;
@@ -122,10 +210,198 @@
     }
   }
 
+  const link = (href, text) => `<a href="${esc(href)}">${esc(text)}</a>`;
+  const explore = (...links) => `<div class="explore"><span>↳</span>${links.join('<span>·</span>')}</div>`;
+
+  // Exhibits are the face's own: real output in solid panels, illustration in
+  // dashed ones. Everything quoted from an app is quoted live and verbatim.
+  const EXHIBITS = {
+    claim: () => `
+      <div class="panel scene">
+        <div class="panelhead"><span class="dim">one fraud alert, two expressions</span><span class="tag">a scene, not this site</span></div>
+        <div class="row"><span class="lane">on the go, stressed</span><span class="say">blocked. no interface. we will solve this together later.</span></div>
+        <div class="row"><span class="lane">at the desk, present</span><span class="say">this happened. i blocked it. want to investigate together?</span></div>
+      </div>
+      <p class="comment"># sometimes the right interface is none at all.</p>
+      ${explore(link(blob("README.md"), "the whole argument: README.md"))}`,
+
+    file: () => `
+      <div class="panel">
+        <div class="dim">$ curl ${esc(HOST)}/a/${esc(short(LOOK))}/state</div>
+        <pre class="out" id="x-state"></pre>
+      </div>
+      <p class="comment"># the state of this page's look, live over the socket. the buttons above were writing here the whole time.</p>
+      ${explore(
+        link(`/a/${LOOK}/state`, "run the curl yourself"),
+        link(blob("PROTOCOL.md"), "watching over websocket: PROTOCOL.md"),
+        link(blob("DEFINITION.md"), "the spec: DEFINITION.md"),
+      )}`,
+
+    separation: () => `
+      <div class="split">
+        <div class="church"><div class="head">the church</div>faces, chats, widgets, voices. many at once, disposable, anyone's to make.</div>
+        <div class="state"><div class="head">the state</div>charter, verbs, state. one url, durable, owned, and it carries its own manual.</div>
+      </div>
+      <p class="comment"># the dashed one is replaceable. the solid one is the app.</p>
+      <div class="panel">
+        <div class="dim">$ curl ${esc(HOST)}/a/${esc(short(LOOK))}</div>
+        <pre class="out" id="x-charter"></pre>
+      </div>
+      <p class="comment"># a stranger holding this reply can use the app, or build it a new face. that is the whole contract.</p>
+      ${explore(
+        link(`/a/${LOOK}`, "the charter, live and in full"),
+        link(blob("PROTOCOL.md"), "the charter schema: PROTOCOL.md"),
+      )}`,
+
+    hood: () => `
+      <div class="panel">
+        <div class="dim">$ curl ${esc(HOST)}/a/${esc(short(LOOK))}</div>
+        <div class="dim"># charter.verbs.set_mode, verbatim:</div>
+        <pre class="dim" id="x-verbmeta"></pre>
+        <pre class="out" id="x-verbcode"></pre>
+        <div class="dim">$ curl ${esc(HOST)}/a/${esc(short(LOOK))}/history → ${link(`/a/${LOOK}/history`, "every amendment, kept")}</div>
+      </div>
+      <p class="comment"># the whole program of a verb, exactly as it runs in production. read it before you trust it.</p>
+      ${explore(
+        link(blob("src/sandbox.ts"), "the sandbox: src/sandbox.ts"),
+        link(blob("DEFINITION.md"), "budgets and law: DEFINITION.md"),
+      )}`,
+
+    outside: () => `
+      <div class="liveblock">
+        <div id="x-seq"></div>
+        <div>change it, and every open copy of this page follows</div>
+      </div>
+      ${explore(
+        link(blob("PROTOCOL.md"), "sockets and presence: PROTOCOL.md"),
+        `<span>a second screen: open this page on your phone</span>`,
+      )}`,
+
+    tools: () => `
+      <div class="panel">
+        <div class="dim">&gt; document.modelContext.getTools() → <span id="x-tools"></span></div>
+      </div>
+      <div class="panel scene">
+        <div class="panelhead"><span class="dim">a session</span><span class="tag">an illustration; try it for real</span></div>
+        <div class="row"><span class="lane">you</span><span class="say">"make it teal and round"</span></div>
+        <div class="row"><span class="lane"></span><span class="dim">tool call&nbsp; set_accent { "accent": "teal" }<br>tool call&nbsp; set_radius { "radius": "round" }</span></div>
+        <div class="row"><span class="lane">agent</span><span class="say">done. every open copy of this page just changed.</span></div>
+      </div>
+      <p class="comment"># the operate door. nothing was installed, no account exists, no sdk was needed.</p>
+      ${explore(
+        link(blob("face/runtime.js"), "how registration works: face/runtime.js"),
+        link(blob("examples/webmcp-proof.html"), "a minimal proof: examples/webmcp-proof.html"),
+      )}`,
+
+    lenses: () => `
+      <div class="lenses">
+        <div class="lens">face one · timeline<div class="ticks" id="x-ticks"></div><span id="x-count"></span></div>
+        <div class="lens">face two · stats
+          <div class="nums">
+            <span><span class="num" id="x-dark"></span><br>dark</span>
+            <span><span class="num" id="x-fav"></span><br>favourite accent</span>
+          </div>counted live from the log</div>
+      </div>
+      <p class="comment"># two faces over the memory. neither is the app.</p>
+      ${explore(
+        link(`/f/timeline?app=/a/${LOG}`, "face one, live: /timeline"),
+        link(`/f/stats?app=/a/${LOG}`, "face two, live: /stats"),
+        link(`/a/${LOG}`, "the app they share"),
+      )}`,
+
+    derived: () => `
+      <div class="panel">
+        <div class="panelhead"><span class="dim">$ paste into any agent</span><button class="copybtn" id="x-copy">copy</button></div>
+        <pre class="out" id="x-prompt"></pre>
+      </div>
+      <p class="comment"># yes, we are inviting you to beat our own face. minutes later you hold your own ui.</p>
+      ${explore(
+        link(blob("face/runtime.js"), "the helper module: face/runtime.js"),
+        link(`${REPO}/tree/main/examples`, "worked examples: poll · pulse · shared-list"),
+      )}`,
+
+    proof: () => `
+      <div class="explore" style="margin-top: 20px; font-size: 14px;">
+        ${link(REPO, "the repo: github.com/moldandyeast/kohlhaas")}
+        <span>·</span>
+        ${link(blob("PROTOCOL.md"), "mint your first app: the manual")}
+        <span>·</span>
+        <span style="color: var(--accent);">an empty URL is waiting █</span>
+      </div>`,
+  };
+
+  function promptText() {
+    return `read ${location.origin}/a/${LOG} and build me a better timeline than the one this site ships. the charter tells you everything.`;
+  }
+
   function renderSections(s) {
-    document.getElementById("sections").innerHTML = (s.sections ?? []).map((sec) =>
-      `<section><h2>${esc(sec.title)}</h2>${esc(sec.body).split(/\n\n+/).map((p) => `<p>${p}</p>`).join("")}</section>`
-    ).join("");
+    document.getElementById("sections").innerHTML = (s.sections ?? []).map((sec) => `
+      <section class="chapter" id="ch-${esc(sec.id)}">
+        <span class="kicker">${esc(KICKERS[sec.id] ?? sec.id)}</span>
+        <h2>${esc(sec.title)}</h2>
+        ${esc(sec.body).split(/\n\n+/).map((p) => `<p>${p}</p>`).join("")}
+        ${EXHIBITS[sec.id] ? EXHIBITS[sec.id]() : ""}
+      </section>`).join("");
+    const copy = document.getElementById("x-copy");
+    if (copy) copy.onclick = () => {
+      navigator.clipboard.writeText(promptText()).then(() => { copy.textContent = "copied"; setTimeout(() => { copy.textContent = "copy"; }, 1500); });
+    };
+    updateLive();
+  }
+
+  // Re-paint every element that quotes an app, from current values.
+  function updateLive() {
+    const ls = look?.state.value, ch = look?.charter.value, gs = log?.state.value;
+    const set = (id, fn) => { const el = document.getElementById(id); if (el) fn(el); };
+
+    if (ls) {
+      set("x-state", (el) => { el.textContent = JSON.stringify({ ok: true, state: ls }); });
+      set("x-seq", (el) => {
+        el.textContent = ls.seq > 0 ? `seq ${ls.seq} · someone set this look before you arrived` : "seq 0 · the original look, untouched so far";
+      });
+      document.getElementById("live").textContent = `● live · seq ${ls.seq}`;
+    }
+    if (ch) {
+      set("x-charter", (el) => {
+        const verbs = Object.keys(ch.verbs).map((k) => `"${k}": {…}`).join(", ");
+        const intent = ch.intent.length > 54 ? ch.intent.slice(0, 54) + " …" : ch.intent;
+        el.textContent = `{\n  "ok": true,\n  "charter": {\n    "intent": ${JSON.stringify(intent)},\n    "verbs":  { ${verbs} },\n    "law":    ${JSON.stringify(ch.law)}\n  }\n}`;
+      });
+      const v = ch.verbs.set_mode;
+      if (v) {
+        set("x-verbmeta", (el) => {
+          const modes = (v.inputSchema?.properties?.mode?.enum ?? []).map((m) => JSON.stringify(m)).join(" | ");
+          el.textContent = `description  ${JSON.stringify(v.description)}\ninput        { "mode": ${modes} }   access: ${v.access}`;
+        });
+        set("x-verbcode", (el) => { el.textContent = v.code; });
+      }
+      set("x-tools", (el) => {
+        el.textContent = Object.entries(ch.verbs).filter(([, x]) => x.access === "public").map(([k]) => k).join(" · ");
+      });
+    }
+    if (gs && ls) {
+      const entries = gs.entries ?? [];
+      set("x-ticks", (el) => {
+        el.innerHTML = entries.slice(-24).map((e, i, arr) => {
+          const hex = (ACCENTS[e.look?.accent] ?? ACCENTS.indigo)[ls.mode];
+          const outline = i === arr.length - 1 ? `outline: 1px solid var(--fg); outline-offset: 1px;` : "";
+          return `<i style="height: ${16 + ((i * 7) % 25)}px; background: ${hex}; ${outline}"></i>`;
+        }).join("");
+      });
+      set("x-count", (el) => { el.textContent = `${entries.length} looks, oldest to now`; });
+      set("x-dark", (el) => {
+        el.textContent = entries.length ? `${Math.round((100 * entries.filter((e) => e.look?.mode === "dark").length) / entries.length)}%` : "·";
+      });
+      set("x-fav", (el) => {
+        if (!entries.length) { el.textContent = "·"; return; }
+        const counts = {};
+        for (const e of entries) counts[e.look?.accent] = (counts[e.look?.accent] ?? 0) + 1;
+        const fav = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+        el.textContent = fav;
+        el.style.color = (ACCENTS[fav] ?? ACCENTS.indigo)[ls.mode];
+      });
+    }
+    set("x-prompt", (el) => { el.textContent = `"${promptText()}"`; });
   }
 
   async function boot() {
@@ -133,13 +409,14 @@
     document.getElementById("swatches").innerHTML = Object.keys(ACCENTS).map((name) =>
       `<button class="swatch" data-accent="${name}" title="${name}"></button>`).join("");
 
-    const [look, page, log] = await Promise.all([
+    [look, page, log] = await Promise.all([
       connect(`/a/${LOOK}`),
       connect(`/a/${PAGE}`, { tools: false }),
       connect(`/a/${LOG}`, { tools: false }),
     ]);
 
     document.getElementById("controls").hidden = false;
+    document.getElementById("live").hidden = false;
     if (typeof document.modelContext !== "undefined") document.getElementById("hint").hidden = false;
 
     // The look, live. Every open page also reports each change to the log app;
@@ -151,14 +428,11 @@
         reported = s.seq;
         log.verbs.record({ seq: s.seq, look: { mode: s.mode, accent: s.accent, radius: s.radius } }).catch(() => {});
       }
+      updateLive();
     });
 
     page.state.watch(renderSections);
-
-    log.state.watch((s) => {
-      const n = (s.entries ?? []).length;
-      document.getElementById("chip").textContent = n === 0 ? "the original look" : `the look has changed ${n} time${n === 1 ? "" : "s"}`;
-    });
+    log.state.watch(updateLive);
 
     document.getElementById("mode-light").onclick = () => look.verbs.set_mode({ mode: "light" });
     document.getElementById("mode-dark").onclick = () => look.verbs.set_mode({ mode: "dark" });
@@ -170,15 +444,12 @@
       b.onclick = () => look.verbs.set_radius({ radius: b.dataset.radius });
     }
     document.getElementById("reset").onclick = () => look.verbs.reset({});
-
-    document.getElementById("link-timeline").href = `/f/timeline?app=/a/${LOG}`;
-    document.getElementById("link-stats").href = `/f/stats?app=/a/${LOG}`;
   }
 
   boot().catch((e) => {
     const p = document.createElement("p");
     p.className = "boot-error";
-    p.textContent = `This face could not reach its apps: ${e.message}`;
+    p.textContent = `this face could not reach its apps: ${e.message}`;
     document.body.appendChild(p);
   });
 </script>

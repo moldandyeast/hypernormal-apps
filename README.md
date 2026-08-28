@@ -1,11 +1,62 @@
 # Hypernormal
 
-Hypernormal is a library for durable faceless apps. An app is a pair: a
-charter and a state, living at one URL. The charter says what the app is and
-what it can do; the state is what it remembers. Both persist on their own,
-with no page open and no process running. The platform stores state and runs
-the app's verbs. It holds no intelligence of its own: every decision arrives
-from outside, carried by whoever calls the app.
+There is no perfect interface. Mobile, tablet, desktop were breakpoints; now
+the breakpoint is context: device, situation, attention, ability, whether the
+user is human at all. Some people want to talk to an app. Some meet it inside
+another app. Some need it glanceable, some need it deep. Agents are learning
+to read the room: not just files and world state but where we are, what we are
+doing, how much space we have. One fraud alert, two expressions. On the go and
+stressed, the right interface may be none at all, just "blocked, we will solve
+this later." At the desk with mental space: "this happened, I blocked it, want
+to investigate together?"
+
+An app is a spreadsheet wearing an experience. Apps have always been data with
+an experience layer on top; add functions to a spreadsheet and you have a
+program. We collect static files and call them second brains, but knowledge
+and language are never static. So here the file becomes a small durable state
+machine at a URL: replayable like a log, watched over a WebSocket, written by
+many hands, its id tied to its host so it carries provenance and identity.
+Multiplayer by default.
+
+Separate church from state. The church is the designed expression; the state
+is the data and the verbs. Smart contracts made the frontend optional, anyone
+can build one or interact with the contract directly, but their manuals live
+outside, in docs. Here the manual is baked in. Ping the address and you
+receive the charter: what it is, what it can do, how to speak to it. A
+stranger with nothing but the URL has everything.
+
+The intelligence stays outside. The platform stores state and runs verbs; it
+decides nothing. Every decision arrives from outside, carried by whoever
+visits: a person, a script, an agent. Intelligence added from outside rather
+than built into the center makes many actors natural, closer to biology, a
+swarm of actors around shared state, than to platforms.
+
+One app, many lenses. A creator ships views; the user is not tied to them.
+Use an app as the creator intended, use it through your agent, its verbs
+becoming tools over WebMCP, or have an agent derive a face from the charter
+alone. The same schema serves the person who can only speak, the person who
+cannot see, the person who wants one number on a watch face. Accessibility
+stops being a separate version.
+
+None of this abolishes design. It multiplies the places where design happens:
+someone still shapes the chat's tone, the glanceable widget, the deep view.
+It is just no longer welded to one app. Faces compose like lego: one face
+over many apps, disposable, built for a moment. Tokens per second keep
+rising; UI arrives just in time.
+
+The live site, [hypernormal.moldandyeast.com](https://hypernormal.moldandyeast.com),
+walks this argument as its own white paper: three apps hold its words, its
+look, and its memory; the page is one face over them. The proof is that it
+runs. Fork it.
+
+## The library
+
+Hypernormal is the argument above, built as a library for durable faceless
+apps. An app is a pair: a charter and a state, living at one URL. The charter
+says what the app is and what it can do; the state is what it remembers. Both
+persist on their own, with no page open and no process running. The platform
+stores state and runs the app's verbs. It holds no intelligence of its own:
+every decision arrives from outside, carried by whoever calls the app.
 
 An app has no built-in interface. Interfaces are derived from the charter, by
 anyone, at any time, and none of them is the app. A person reaches an app the
@@ -87,7 +138,7 @@ This is how an app changes while no one is watching.
 ## The three doors
 
 One charter, three ways in. Nothing is declared twice; each door is a
-projection of the same charter.
+projection of the same charter. This is how one app carries many lenses.
 
 - **Call.** Plain HTTP. `GET` the charter, `GET` the state, `POST` to invoke a
   verb, open a WebSocket to watch. Anything that can fetch a URL is a full
@@ -132,7 +183,7 @@ what a page-scoped tool set does not have.
 object to watch, and a document an agent can build from. Sharing is a link.
 Everyone who opens the same URL shares the same state.
 
-## What it unlocks
+## What it makes possible
 
 - An agent can bring a durable, shareable app into existence from a
   description, with no deploy, and hand back a URL.
@@ -262,6 +313,8 @@ just do not register.
   the schema subset, the socket protocol, and the WebMCP mapping.
 - `examples/`: three complete charter-and-face pairs.
 - `scripts/hn.sh`: the owner CLI.
+- [hypernormal.moldandyeast.com](https://hypernormal.moldandyeast.com): the
+  live site, the argument at the top of this README as a live white paper.
 
 ## License
 

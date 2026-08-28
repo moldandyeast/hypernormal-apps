@@ -61,13 +61,13 @@ describe("site: page app", () => {
   it("serves sections to anyone; only the owner edits; unknown id lists valid ids", async () => {
     const id = await mint(page, pageState);
     const state = (await (await SELF.fetch(`https://x/a/${id}/state`)).json()) as any;
-    expect(state.state.sections.map((s: any) => s.id)).toContain("this-site");
-    const guest = await rpc(id, "edit_section", { id: "what", title: "hax" });
+    expect(state.state.sections.map((s: any) => s.id)).toContain("separation");
+    const guest = await rpc(id, "edit_section", { id: "claim", title: "hax" });
     expect(guest.status).toBe(404);
-    const edit = (await (await rpc(id, "edit_section", { id: "what", title: "Hypernormal, plainly" }, owner)).json()) as any;
-    expect(edit.result).toMatchObject({ id: "what", title: "Hypernormal, plainly" });
+    const edit = (await (await rpc(id, "edit_section", { id: "claim", title: "there is no perfect interface, plainly" }, owner)).json()) as any;
+    expect(edit.result).toMatchObject({ id: "claim", title: "there is no perfect interface, plainly" });
     const missing = await rpc(id, "edit_section", { id: "nope" }, owner);
     expect(missing.status).toBe(400);
-    expect(((await missing.json()) as any).error).toMatch(/this-site/);
+    expect(((await missing.json()) as any).error).toMatch(/separation/);
   });
 });

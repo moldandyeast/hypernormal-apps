@@ -1,29 +1,54 @@
 {
   "sections": [
     {
-      "id": "what",
-      "title": "Hypernormal",
-      "body": "Hypernormal hosts durable faceless apps. An app is a charter and a state living at one URL: the charter says what it is and what it can do, the state is what it remembers. Both persist with no page open and no process running anywhere.\n\nThe platform stores state and runs verbs. It calls no model and makes no decision; the intelligence is always the caller's, whether that caller is a person, a script, or an agent."
+      "id": "claim",
+      "title": "there is no perfect interface.",
+      "body": "mobile, tablet, desktop were breakpoints. now the breakpoint is context: device, situation, attention, ability, whether the user is human at all. some want to talk to an app. some meet it inside another app. some need it glanceable, some need it deep.\n\nand the agents we work with are learning to read the room: not just files and world state, but where we are, what we are doing, how much space we have. an interface is an expression that matches a context, and contexts have multiplied past what any single designed face can cover."
     },
     {
-      "id": "three-words",
-      "title": "Durable. Headless. Faceless.",
-      "body": "Durable: an app's address, state, and behavior persist on their own. Closing every browser tab in the world changes nothing about it.\n\nHeadless: the platform holds no intelligence. It stores state and runs verbs; nothing more.\n\nFaceless: an app has no canonical interface. Faces are derived from the charter, disposable, and never the app itself. This page is one of them."
+      "id": "file",
+      "title": "an app is a spreadsheet wearing an experience.",
+      "body": "apps have always been data with an experience layer on top. add functions to a spreadsheet and you have a program. we collect static files and call them second brains, but knowledge and language are never static.\n\nso the file becomes a small durable state machine at a url. every change lands one at a time, in order. it can be watched over a websocket and written by many hands. its id is tied to its host, so it carries provenance and identity. multiplayer by default, alive on its own."
     },
     {
-      "id": "doors",
-      "title": "Three doors",
-      "body": "Every app is reachable three ways, all from one charter.\n\nCall: plain HTTP. GET the charter, GET the state, POST to invoke a verb, open a WebSocket to watch. Anything that can fetch a URL is a full client.\n\nOperate: a face registers the app's public verbs as browser tools through WebMCP. Your agent acts on the app while you watch the same live state.\n\nDerive: an agent reads the charter and state and builds an interface on the spot. A stranger's agent, given only the URL, has everything it needs."
+      "id": "separation",
+      "title": "separate church from state.",
+      "body": "the design is not the app. the church is the designed expression; the state is the data and the verbs. smart contracts made the frontend optional, anyone can build one or interact directly. but their manuals live outside, in docs.\n\nhere the manual is baked in. ping the address and receive the charter: what it is, what it can do, how to speak to it. a stranger with nothing but the url has everything, and if the charter leaves a question open, that is a defect in the charter."
     },
     {
-      "id": "this-site",
-      "title": "This site is three apps",
-      "body": "The page you are reading is a face over three apps.\n\nThe words come from one app. The look, the colors and corners and light or dark, comes from a second, which this page reads the same way any stranger's face would: charter, socket, verbs. A third app remembers every look this site has had; every open page reports changes to it, and it refuses duplicates, so each change lands exactly once.\n\nNothing here is privileged. It is all public doors."
+      "id": "hood",
+      "title": "nothing is hidden.",
+      "body": "the verbs are code, and the code is stored as text you may read. the state is a document you may fetch. every amendment to the charter is kept in history. an app can be audited from the outside, in one request.\n\nand the law is enforced, not promised. this app's allowedHosts list is empty, so its verbs cannot reach the network at all: pure functions of state, input, clock and seed."
     },
     {
-      "id": "try",
-      "title": "Try it",
-      "body": "Change the look with the controls above. Every open copy of this page, on every screen, changes at the same instant.\n\nIf your browser speaks WebMCP, your agent already has the tools: ask it to make the site dark, or teal, or round.\n\nThen look at the memory: the timeline and the stats are two different faces over the same log app. Neither is the app; neither is this page."
+      "id": "outside",
+      "title": "the intelligence stays outside.",
+      "body": "the platform stores state and runs verbs. it decides nothing. every decision arrives from outside, carried by whoever visits: a person, a script, an agent.\n\nkeeping the intelligence outside, instead of building it into the center, is what makes many actors natural. many hands reading and writing the same small machines, closer to biology than to platforms. it is also why this page is shared."
+    },
+    {
+      "id": "tools",
+      "title": "verbs become tools.",
+      "body": "a page that speaks webmcp registers an app's public verbs as browser tools. your agent discovers them the moment you arrive. nothing was installed, no account exists, no sdk was needed.\n\nand you watch the same live state your agent acts on. say what you want; the tools carry it; every open screen follows."
+    },
+    {
+      "id": "lenses",
+      "title": "one app, many lenses.",
+      "body": "a creator ships views; the user is not tied to them. use an app as the creator intended. use it through your agent, its verbs become your agent's tools. or hand the charter to an agent and have it derive a face just for you, on the spot.\n\nthe same schema serves everyone: the person who can only speak, the person who cannot see, the person who wants one number on a watch face. accessibility stops being a separate version. below, one app seen twice."
+    },
+    {
+      "id": "derived",
+      "title": "vibe code a face of your own.",
+      "body": "the derive door is the widest one. hand the charter to any agent and ask for the interface you want right now: a dashboard, a widget, one number for a watch face. the charter answers every question the agent will have.\n\nfaces built this way are yours and disposable. keep one for years or throw it away after a minute; the app does not notice either way."
+    },
+    {
+      "id": "opening",
+      "title": "the design space opens.",
+      "body": "none of this abolishes design; it multiplies the places where design happens. someone still shapes the chat's tone, the glanceable widget, the deep view. the work is no longer welded to one app.\n\nand faces compose like lego: one face over many apps, built for a moment, thrown away after. tokens per second keep rising, and interfaces arrive just in time. this page is such a face, one lens over three apps."
+    },
+    {
+      "id": "proof",
+      "title": "fork it.",
+      "body": "this site is its own white paper. three apps hold its words, its look, and its memory; the page you just read is one face over them. the proof is that it runs."
     }
   ]
 }
