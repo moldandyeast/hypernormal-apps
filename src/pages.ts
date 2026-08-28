@@ -100,7 +100,7 @@ You may send:
 
 A result goes only to its caller; state goes to everyone watching. Those are the system's two channels and they are not interchangeable. An interface should hydrate from the socket's first state message rather than reading state separately, so there is one source of truth on screen.
 
-\`${o}/runtime.js\` is a small dependency-free ES module that wraps exactly the above — a live state value, one function per public verb, presence, and registration of the public verbs as browser tools where the browser has a tool API. It is a convenience and never a requirement.
+\`${o}/runtime.js\` is a small dependency-free ES module that wraps exactly the above: a live state value, one function per public verb, presence, and registration of the public verbs as browser tools over WebMCP (\`document.modelContext\`) where the browser provides it. It is a convenience and never a requirement.
 
 ## The acts
 

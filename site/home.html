@@ -279,7 +279,7 @@
 
     tools: () => `
       <div class="panel">
-        <div class="dim">&gt; document.modelContext.getTools() → <span id="x-tools"></span></div>
+        <div class="dim">&gt; document.modelContext.getTools() → <span id="x-tools">checking this browser…</span></div>
       </div>
       <div class="panel scene">
         <div class="panelhead"><span class="dim">a session</span><span class="tag">an illustration; try it for real</span></div>
@@ -375,9 +375,6 @@
         });
         set("x-verbcode", (el) => { el.textContent = v.code; });
       }
-      set("x-tools", (el) => {
-        el.textContent = Object.entries(ch.verbs).filter(([, x]) => x.access === "public").map(([k]) => k).join(" · ");
-      });
     }
     if (gs && ls) {
       const entries = gs.entries ?? [];
@@ -402,6 +399,27 @@
       });
     }
     set("x-prompt", (el) => { el.textContent = `"${promptText()}"`; });
+    refreshToolsLine();
+  }
+
+  // Chapter 06 tells the truth about this browser: the getTools call is run
+  // for real, and its absence is reported as plainly as its result.
+  async function refreshToolsLine() {
+    const el = document.getElementById("x-tools");
+    if (!el) return;
+    if (typeof document.modelContext === "undefined" || !document.modelContext.getTools) {
+      el.textContent = "nothing. this browser does not speak webmcp yet; chrome 149+ with the webmcp flag turns it on.";
+      return;
+    }
+    try {
+      const tools = await document.modelContext.getTools();
+      el.textContent = tools.length
+        ? `${tools.map((t) => t.name).join(" · ")}  (live from this browser)`
+        : "no tools registered yet";
+      el.className = "out";
+    } catch (e) {
+      el.textContent = `the call failed: ${e.message}`;
+    }
   }
 
   async function boot() {
