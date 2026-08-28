@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>the look · swatch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    background: #3B5BDB; color: #FFFFFF;
+    font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    display: flex; align-items: center; justify-content: center;
+    transition: background-color .35s ease, color .35s ease;
+    cursor: pointer; user-select: none;
+  }
+  .frame {
+    border: 1px solid currentColor; opacity: .92; padding: 40px 48px;
+    display: flex; flex-direction: column; gap: 10px; align-items: center; text-align: center;
+    border-radius: var(--radius, 8px); transition: border-radius .35s ease;
+  }
+  .name { font-size: clamp(36px, 9vw, 64px); font-weight: 500; letter-spacing: -0.02em; line-height: 1.1; }
+  .sub { font-size: 14px; opacity: .8; }
+  .hint { font-size: 12px; opacity: .6; margin-top: 8px; }
+  a { color: inherit; }
+</style>
+</head>
+<body>
+  <div class="frame">
+    <span class="name" id="name">…</span>
+    <span class="sub" id="sub"></span>
+    <span class="hint" id="hint"></span>
+  </div>
+<script type="module">
+  import { connect } from "/runtime.js";
+  // The palette, mirrored from the look app's charter intent.
+  const ACCENTS = {
+    indigo: { light: "#3B5BDB", dark: "#91A7FF" },
+    green:  { light: "#2B8A3E", dark: "#8CE99A" },
+    orange: { light: "#D9480F", dark: "#FFC078" },
+    violet: { light: "#862E9C", dark: "#E599F7" },
+    red:    { light: "#C92A2A", dark: "#FFA8A8" },
+    teal:   { light: "#087F5B", dark: "#63E6BE" },
+  };
+  const RADII = { sharp: "0px", soft: "8px", round: "16px" };
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  function guardedAppUrl() {
+    const raw = new URLSearchParams(location.search).get("app");
+    const show = (m) => { document.getElementById("name").textContent = "swatch"; document.getElementById("sub").textContent = `# ${m}`; };
+    if (!raw) { show("open this face with ?app=<same-origin app url>."); return null; }
+    let resolved; try { resolved = new URL(raw, location.origin); } catch { show("the app url could not be parsed."); return null; }
+    if (resolved.origin !== location.origin) { show("this face only connects to apps on this installation."); return null; }
+    return resolved.href;
+  }
+
+  const appUrl = guardedAppUrl();
+  if (appUrl) {
+    const app = await connect(appUrl, { tools: false });
+    // The tap target comes from the charter, not from this file: the accent
+    // enum is read from set_accent's own input schema.
+    const accents = () => app.charter.value?.verbs?.set_accent?.inputSchema?.properties?.accent?.enum ?? Object.keys(ACCENTS);
+    const canSet = () => app.charter.value?.verbs?.set_accent?.access === "public";
+
+    app.state.watch((s) => {
+      const hex = (ACCENTS[s.accent] ?? ACCENTS.indigo)[s.mode] ?? "#3B5BDB";
+      document.body.style.background = hex;
+      document.body.style.color = s.mode === "light" ? "#FFFFFF" : "#0A0A0A";
+      document.documentElement.style.setProperty("--radius", RADII[s.radius] ?? RADII.soft);
+      document.getElementById("name").textContent = s.accent ?? "?";
+      document.getElementById("sub").textContent = `${s.mode} · ${s.radius} · seq ${s.seq}`;
+      document.getElementById("hint").textContent = canSet()
+        ? "tap anywhere for the next accent. every open screen follows."
+        : "read-only: this app has no public set_accent.";
+    });
+
+    document.body.addEventListener("click", () => {
+      if (!canSet()) return;
+      const list = accents();
+      const next = list[(list.indexOf(app.state.value?.accent) + 1) % list.length];
+      app.verbs.set_accent({ accent: next }).catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>

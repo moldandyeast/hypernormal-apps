@@ -43,3 +43,9 @@ await call("PUT", "/f/timeline", { name: "timeline", title: "the memory · timel
 console.log(`face:     ${BASE}/f/timeline?app=/a/${ids.log}`);
 await call("PUT", "/f/stats", { name: "stats", title: "the memory · stats", html: site("stats.html"), targets: [ids.log], visibility: "public" });
 console.log(`face:     ${BASE}/f/stats?app=/a/${ids.log}`);
+await call("PUT", "/f/quilt", { name: "quilt", title: "the memory · quilt", html: site("quilt.html"), targets: [ids.log], visibility: "public" });
+console.log(`face:     ${BASE}/f/quilt?app=/a/${ids.log}`);
+await call("PUT", "/f/swatch", { name: "swatch", title: "the look · swatch", html: site("swatch.html"), targets: [ids.look], visibility: "public" });
+console.log(`face:     ${BASE}/f/swatch?app=/a/${ids.look}`);
+await call("PUT", "/f/console", { name: "console", title: "any app · console", html: site("console.html"), targets: [ids.look, ids.page, ids.log], visibility: "public" });
+console.log(`face:     ${BASE}/f/console?app=/a/${ids.look}`);

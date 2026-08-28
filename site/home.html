@@ -309,11 +309,16 @@
             <span><span class="num" id="x-fav"></span><br>favourite accent</span>
           </div>counted live from the log</div>
       </div>
-      <p class="comment"># two faces over the memory. neither is the app. replay repaints only your screen; the shared look stays untouched.</p>
+      <p class="comment"># none of these is the app. replay repaints only your screen; the shared look stays untouched.</p>
       ${explore(
-        link(`/f/timeline?app=/a/${LOG}`, "face one, live: /timeline"),
-        link(`/f/stats?app=/a/${LOG}`, "face two, live: /stats"),
+        link(`/f/timeline?app=/a/${LOG}`, "face one: /timeline"),
+        link(`/f/stats?app=/a/${LOG}`, "face two: /stats"),
+        link(`/f/quilt?app=/a/${LOG}`, "face three: /quilt"),
         link(`/a/${LOG}`, "the app they share"),
+      )}
+      ${explore(
+        link(`/f/swatch?app=/a/${LOOK}`, "a glanceable lens over the look: /swatch"),
+        link(`/f/console?app=/a/${LOOK}`, "a repl over any app: /console"),
       )}`,
 
     derived: () => `

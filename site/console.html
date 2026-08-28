@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>any app · console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFFFFF; --fg: #26282B; --body: #55595F; --label: #7A8087;
+    --comment: #6E747B; --line: #E8E8E8; --panel: #F7F7F7; --accent: #3B5BDB;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0A0A0A; --fg: #C6CAD0; --body: #8F949C; --label: #6B717A;
+      --comment: #767C84; --line: #232323; --panel: #0F0F0F; --accent: #91A7FF;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--body);
+    font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px; line-height: 22px;
+    max-width: 720px; margin: 0 auto; padding: 56px 24px;
+  }
+  a { color: var(--fg); text-underline-offset: 3px; }
+  a:hover { color: var(--accent); }
+  .kicker { font-size: 13px; color: var(--label); display: block; margin-bottom: 12px; }
+  h1 { font-size: 22px; line-height: 30px; font-weight: 500; color: var(--fg); }
+  .claimrow { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: baseline; margin: 10px 0 24px; }
+  .claimrow .back { font-size: 13px; white-space: nowrap; }
+  .panel { border: 1px solid var(--line); background: var(--panel); padding: 14px 16px; margin-top: 14px; overflow-x: auto; }
+  .intent { color: var(--label); }
+  .verb { display: flex; gap: 12px; align-items: baseline; padding: 3px 0; flex-wrap: wrap; }
+  .verb .vname { color: var(--fg); font-weight: 500; cursor: pointer; }
+  .verb .vname:hover { color: var(--accent); }
+  .verb .vsig { color: var(--label); }
+  .verb .vdesc { color: var(--comment); width: 100%; padding-left: 16px; }
+  #feed { border: 1px solid var(--line); background: var(--panel); padding: 14px 16px; margin-top: 14px; height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
+  #feed .in { color: var(--fg); }
+  #feed .ok { color: var(--body); }
+  #feed .st { color: var(--label); }
+  #feed .er { color: var(--accent); }
+  .promptrow { display: flex; gap: 10px; margin-top: 12px; align-items: center; }
+  .promptrow .mark { color: var(--label); }
+  input {
+    flex: 1; font: inherit; color: var(--fg); background: transparent;
+    border: 1px solid var(--line); padding: 8px 12px; outline: none;
+  }
+  input:focus { border-color: var(--accent); }
+  .comment { font-size: 13px; color: var(--comment); margin-top: 14px; }
+</style>
+</head>
+<body>
+  <span class="kicker">a face over any app</span>
+  <h1>console</h1>
+  <div class="claimrow">
+    <span>the charter is the manual; this face just reads it aloud.</span>
+    <a class="back" href="/">← hypernormal apps</a>
+  </div>
+  <div id="main" hidden>
+    <div class="panel intent" id="intent"></div>
+    <div class="panel" id="verbs"></div>
+    <div id="feed"></div>
+    <div class="promptrow"><span class="mark">&gt;</span><input id="cmd" spellcheck="false" placeholder='verb {"key": "value"}   ·   enter to invoke'></div>
+  </div>
+  <p class="comment" id="note"></p>
+<script type="module">
+  import { connect } from "/runtime.js";
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  function guardedAppUrl() {
+    const raw = new URLSearchParams(location.search).get("app");
+    const show = (m) => { document.getElementById("note").textContent = `# ${m}`; };
+    if (!raw) { show("open this face with ?app=<same-origin app url>, for example ?app=/a/<id>. it works over any app on this installation."); return null; }
+    let resolved; try { resolved = new URL(raw, location.origin); } catch { show("the app url could not be parsed."); return null; }
+    if (resolved.origin !== location.origin) { show("this face only connects to apps on this installation."); return null; }
+    return resolved.href;
+  }
+
+  // A one-line signature derived from a verb's input schema.
+  function sig(schema) {
+    const props = schema?.properties ?? {};
+    const req = new Set(schema?.required ?? []);
+    const parts = Object.entries(props).map(([k, v]) => {
+      const t = v.enum ? v.enum.join("|") : v.type ?? "any";
+      return `${k}${req.has(k) ? "" : "?"}: ${t}`;
+    });
+    return parts.length ? `{ ${parts.join(", ")} }` : "{ }";
+  }
+
+  const feed = document.getElementById("feed");
+  function say(cls, text) {
+    const div = document.createElement("div");
+    div.className = cls;
+    div.textContent = text;
+    feed.appendChild(div);
+    while (feed.children.length > 120) feed.firstChild.remove();
+    feed.scrollTop = feed.scrollHeight;
+  }
+
+  const appUrl = guardedAppUrl();
+  if (appUrl) {
+    const app = await connect(appUrl, { tools: false });
+    document.getElementById("main").hidden = false;
+    document.getElementById("note").textContent = "# public verbs only; owner verbs answer 404 to strangers, as the manual says. state lines arrive over the socket.";
+
+    function renderCharter(ch) {
+      document.getElementById("intent").textContent = ch.intent.length > 300 ? ch.intent.slice(0, 300) + " …" : ch.intent;
+      document.getElementById("verbs").innerHTML = Object.entries(ch.verbs)
+        .filter(([, v]) => v.access === "public")
+        .map(([name, v]) => `<div class="verb"><span class="vname" data-verb="${esc(name)}">${esc(name)}</span><span class="vsig">${esc(sig(v.inputSchema))}</span><span class="vdesc">${esc(v.description)}</span></div>`)
+        .join("") || `<span class="vdesc">no public verbs; this app is read-only for strangers.</span>`;
+    }
+    app.charter.watch(renderCharter);
+    app.state.watch((s) => say("st", `state  ${JSON.stringify(s)}`));
+
+    const cmd = document.getElementById("cmd");
+    document.getElementById("verbs").addEventListener("click", (e) => {
+      const v = e.target.dataset?.verb;
+      if (v) { cmd.value = `${v} ${cmd.value.replace(/^\S+\s*/, "") || "{}"}`; cmd.focus(); }
+    });
+    cmd.addEventListener("keydown", async (e) => {
+      if (e.key !== "Enter" || !cmd.value.trim()) return;
+      const line = cmd.value.trim();
+      const [verb, ...rest] = line.split(/\s+/);
+      let input = {};
+      if (rest.length) {
+        try { input = JSON.parse(rest.join(" ")); }
+        catch { say("er", `error  input is not json: ${rest.join(" ")}`); return; }
+      }
+      say("in", `> ${line}`);
+      cmd.value = "";
+      try {
+        const result = await app.invoke(verb, input);
+        say("ok", `←  ${JSON.stringify(result)}`);
+      } catch (err) {
+        say("er", `error  ${err.message}`);
+      }
+    });
+  }
+</script>
+</body>
+</html>

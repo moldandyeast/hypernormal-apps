@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>the memory · quilt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFFFFF; --fg: #26282B; --body: #55595F; --label: #7A8087;
+    --comment: #6E747B; --line: #E8E8E8; --accent: #3B5BDB; --radius: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--body);
+    font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 14px; line-height: 24px;
+    max-width: 720px; margin: 0 auto; padding: 56px 24px;
+    transition: background-color .35s ease, color .35s ease;
+  }
+  a { color: var(--fg); text-underline-offset: 3px; }
+  a:hover { color: var(--accent); }
+  .kicker { font-size: 13px; color: var(--label); display: block; margin-bottom: 12px; }
+  h1 { font-size: 22px; line-height: 30px; font-weight: 500; color: var(--fg); }
+  .claimrow { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: baseline; margin: 10px 0 28px; }
+  .claimrow .back { font-size: 13px; white-space: nowrap; }
+  #quilt { display: flex; flex-wrap: wrap; gap: 4px; border-top: 1px solid var(--line); padding-top: 20px; }
+  .stitch { width: 18px; height: 18px; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; }
+  .stitch i { width: 8px; height: 8px; border-radius: inherit; display: block; }
+  .comment { font-size: 13px; color: var(--comment); margin-top: 16px; }
+  .explore { display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; font-size: 13px; margin-top: 20px; color: var(--label); }
+  .explore a { color: var(--fg); }
+</style>
+</head>
+<body>
+  <span class="kicker">a face over the memory</span>
+  <h1>quilt</h1>
+  <div class="claimrow">
+    <span id="count">every look, one stitch each, oldest first.</span>
+    <a class="back" href="/">← hypernormal apps</a>
+  </div>
+  <div id="quilt"></div>
+  <p class="comment"># each stitch is one look: its mode is the cloth, its accent the thread, its corners the cut. this face wears whatever the newest entry says.</p>
+  <div class="explore" id="links" hidden>
+    <span>↳</span><a id="link-app" href="#">the app, raw</a><span>·</span><a id="link-timeline" href="#">timeline</a><span>·</span><a id="link-stats" href="#">stats</a>
+  </div>
+<script type="module">
+  import { connect } from "/runtime.js";
+  const ACCENTS = {
+    indigo: { light: "#3B5BDB", dark: "#91A7FF" },
+    green:  { light: "#2B8A3E", dark: "#8CE99A" },
+    orange: { light: "#D9480F", dark: "#FFC078" },
+    violet: { light: "#862E9C", dark: "#E599F7" },
+    red:    { light: "#C92A2A", dark: "#FFA8A8" },
+    teal:   { light: "#087F5B", dark: "#63E6BE" },
+  };
+  const BASE = {
+    light: { bg: "#FFFFFF", fg: "#26282B", body: "#55595F", label: "#7A8087", comment: "#6E747B", line: "#E8E8E8" },
+    dark:  { bg: "#0A0A0A", fg: "#C6CAD0", body: "#8F949C", label: "#6B717A", comment: "#767C84", line: "#232323" },
+  };
+  const CLOTH = { light: "#FFFFFF", dark: "#0A0A0A" };
+  const CUT = { sharp: "0px", soft: "3px", round: "9px" };
+  const RADII = { sharp: "0px", soft: "8px", round: "16px" };
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  function applyLook(last) {
+    const mode = last?.mode ?? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const root = document.documentElement.style;
+    for (const [k, v] of Object.entries(BASE[mode] ?? BASE.light)) root.setProperty(`--${k}`, v);
+    root.setProperty("--accent", (ACCENTS[last?.accent] ?? ACCENTS.indigo)[mode]);
+    root.setProperty("--radius", RADII[last?.radius] ?? RADII.soft);
+    return mode;
+  }
+
+  function guardedAppUrl() {
+    const raw = new URLSearchParams(location.search).get("app");
+    const show = (m) => { document.getElementById("quilt").innerHTML = `<span class="comment"># ${esc(m)}</span>`; };
+    if (!raw) { show("open this face with ?app=<same-origin app url>, for example ?app=/a/<id>."); return null; }
+    let resolved; try { resolved = new URL(raw, location.origin); } catch { show("the app url could not be parsed."); return null; }
+    if (resolved.origin !== location.origin) { show("this face only connects to apps on this installation."); return null; }
+    return resolved.href;
+  }
+
+  const appUrl = guardedAppUrl();
+  if (appUrl) {
+    document.getElementById("links").hidden = false;
+    document.getElementById("link-app").href = `${new URL(appUrl).pathname}/state`;
+    document.getElementById("link-timeline").href = `/f/timeline?app=${new URL(appUrl).pathname}`;
+    document.getElementById("link-stats").href = `/f/stats?app=${new URL(appUrl).pathname}`;
+    const app = await connect(appUrl, { tools: false });
+    app.state.watch((s) => {
+      const entries = s.entries ?? [];
+      applyLook(entries[entries.length - 1]?.look);
+      document.getElementById("count").textContent = entries.length === 0
+        ? "no looks recorded yet. go change the look."
+        : `${entries.length} looks, one stitch each, oldest first.`;
+      document.getElementById("quilt").innerHTML = entries.map((e) => {
+        const l = e.look ?? {};
+        const thread = (ACCENTS[l.accent] ?? ACCENTS.indigo)[l.mode ?? "light"];
+        return `<span class="stitch" title="#${e.seq} · ${esc(l.accent)} ${esc(l.mode)} ${esc(l.radius)}" style="background:${CLOTH[l.mode] ?? "#FFFFFF"};border-radius:${CUT[l.radius] ?? "3px"}"><i style="background:${thread}"></i></span>`;
+      }).join("");
+    });
+  }
+</script>
+</body>
+</html>
