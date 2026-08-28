@@ -1,6 +1,7 @@
 {
   "name": "hypernormal",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "npm run build && wrangler dev",
