@@ -12,3 +12,4 @@ src/runtime-source.txt
 .access-service-token
 worker-configuration.d.ts
 .site-ids
+docs/video/out/

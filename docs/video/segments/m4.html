@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1920, height=1080" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: #0A0A0A; }
+  body { font-family: "Geist Mono", monospace; color: #8F949C; }
+  .stage { width: 1920px; height: 1080px; display: flex; flex-direction: column; justify-content: center; padding: 0 320px; gap: 28px; }
+  .title { font-size: 46px; font-weight: 500; color: #C6CAD0; line-height: 1.25; }
+  .line { font-size: 28px; line-height: 1.6; }
+  .dim { color: #6B717A; }
+  .out { color: #C6CAD0; }
+  .comment { font-size: 24px; color: #767C84; }
+  .panel { border: 1px solid #262626; background: #0F0F0F; padding: 36px 40px; font-size: 25px; line-height: 1.7; }
+  .panel.scene { border-style: dashed; border-color: #3A3A3A; background: transparent; }
+  .panelhead { display: flex; justify-content: space-between; align-items: baseline; }
+  .tag { font-size: 19px; color: #6B717A; }
+  pre { font: inherit; white-space: pre-wrap; }
+  .lane { display: flex; gap: 32px; align-items: baseline; margin-top: 14px; }
+  .lane .who { color: #6B717A; width: 130px; flex-shrink: 0; }
+  .lane .say { color: #C6CAD0; }
+  .cursor { display: inline-block; width: 0.5em; height: 0.95em; vertical-align: text-bottom; }
+  .accent { color: #63E6BE; }
+  .fadein { opacity: 0; }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="m4" data-start="0" data-duration="14" data-width="1920" data-height="1080">
+
+    <div class="stage">
+      <div class="title fadein" id="t">verbs become tools.</div>
+      <div class="line dim"><span id="gt"></span></div>
+      <div class="panel scene fadein" id="p">
+        <div class="panelhead"><span class="dim">a session</span><span class="tag">an illustration; the tools are real</span></div>
+        <div class="lane"><span class="who">you</span><span class="say" id="you"></span></div>
+        <div class="lane fadein" id="tc1"><span class="who"></span><span class="dim">tool call&nbsp; set_accent { "accent": "teal" }</span></div>
+        <div class="lane fadein" id="tc2"><span class="who"></span><span class="dim">tool call&nbsp; set_radius { "radius": "round" }</span></div>
+        <div class="lane"><span class="who">agent</span><span class="say" id="ag"></span></div>
+      </div>
+      <div class="comment fadein" id="c"># webmcp. nothing was installed, no account exists, no sdk was needed.</div>
+    </div>
+</div>
+<script>
+  window.__timelines = window.__timelines || {};
+  const tl = gsap.timeline({ paused: true });
+  function type(sel, text, at, dur) {
+    const el = document.querySelector(sel);
+    el.textContent = "";
+    const st = { n: 0 };
+    tl.to(st, { n: text.length, duration: dur, ease: "none",
+      onUpdate: () => { el.textContent = text.slice(0, Math.round(st.n)); } }, at);
+  }
+  function fade(sel, at, dur = 0.7) {
+    tl.fromTo(sel, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: dur, ease: "power2.out" }, at);
+  }
+  function blink(sel, at, cycles) {
+    tl.to(sel, { opacity: 0, duration: 0.45, yoyo: true, repeat: cycles * 2, ease: "steps(1)" }, at);
+  }
+
+  fade("#t", 0.3);
+  type("#gt", "> document.modelContext.getTools() → set_mode · set_accent · set_radius · reset", 1.2, 2.2);
+  fade("#p", 4.0);
+  type("#you", "\"make it teal and round\"", 4.6, 1.1);
+  fade("#tc1", 6.2, 0.5); fade("#tc2", 6.9, 0.5);
+  type("#ag", "done. every open copy of this page just changed.", 7.9, 1.7);
+  fade("#c", 10.6);
+
+  window.__timelines["m4"] = tl;
+</script>
+</body>
+</html>
