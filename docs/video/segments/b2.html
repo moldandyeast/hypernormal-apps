@@ -47,9 +47,9 @@
     <div class="mock-chips"><span>add</span><span>filter</span><span>export</span></div>
     <div class="mock-bars"><i style="height: 46px;"></i><i style="height: 92px;"></i><i style="height: 64px;"></i><i style="height: 118px;"></i><i style="height: 82px;"></i></div>
   </div></div></div>
-    <div class="variant" id="v1" style="opacity: 0;"><div class="line dim">your user is driving.</div><div class="big" style="margin-top: 40px;">blocked. we will talk later.</div></div>
-    <div class="variant" id="v2" style="opacity: 0;"><div class="line dim">your user cannot see.</div><div class="line out" style="margin-top: 40px;">expenses, march. five entries. add, filter, export.<br>spoken, in order, nothing more.</div></div>
-    <div class="variant" id="v3" style="opacity: 0;"><div class="line dim">your user is not human.</div><pre class="line out" style="margin-top: 40px;">{ "month": "march", "entries": 5, "verbs": ["add", "filter", "export"] }</pre></div>
+    <div class="variant" id="v1" style="opacity: 0;"><div class="line dim">your user is driving.</div><div class="big" style="margin-top: 40px;">blocked. we will talk later.</div><div class="comment" style="margin-top: 30px;"># no screen. one sentence.</div></div>
+    <div class="variant" id="v2" style="opacity: 0;"><div class="line dim">your user cannot see.</div><div class="line out" style="margin-top: 40px;">"expenses for march. five entries.<br>you can add, filter, or export."</div><div class="comment" style="margin-top: 30px;"># the same app, read aloud.</div></div>
+    <div class="variant" id="v3" style="opacity: 0;"><div class="line dim">your user is not human.</div><pre class="line out" style="margin-top: 40px;">{ "month": "march", "entries": 5, "actions": ["add", "filter", "export"] }</pre><div class="comment" style="margin-top: 30px;"># the same app, as data for an agent.</div></div>
 </div>
 <script>
   window.__timelines = window.__timelines || {};

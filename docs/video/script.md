@@ -21,7 +21,7 @@ Cold open, no title. Two lines, then a small, lovingly drawn interface
 appears in a dashed panel: buttons, a chart, tidy.
 
 > you built an app.
-> you designed its face. it is perfect.
+> you designed its interface. it is perfect.
 
 **CUT: but.**
 
@@ -39,27 +39,27 @@ line appears, and the pretty panel collapses into a different shape:
 ## beat 3 · the claim (~5s) · motion
 
 > there is no perfect interface.
-> there are contexts.
+> there are only situations.
 
 **CUT: but.**
 
 ## beat 4 · the villain (~7s) · motion
 
-> every app ships exactly one face.
-> welded on.
-> therefore everyone lives in someone else's compromise.
+> every app you use ships one fixed interface.
+> the one its maker chose.
+> whatever your situation, you get the same compromise.
 
 **CUT: therefore.**
 
 ## beat 5 · the separation (~12s) · motion, then REAL
 
-> separate the face from the app.
+> separate the interface from the app.
 
 The split diagram: the dashed church drifts off screen; the solid box
 stays and grows one line at a time:
 
 > what remains is the app itself:
-> a charter and a state, at one url, with its manual baked in.
+> its data, its actions, and its manual, at one web address.
 
 REAL, tagged "live": the site's chapter 03 panel in close-up, the actual
 charter JSON on screen.
@@ -68,8 +68,8 @@ charter JSON on screen.
 
 ## beat 6 · the objection (~14s) · motion, then REAL
 
-> an app with no face is useless.
-> therefore anyone may give it one.
+> an app with no interface sounds useless.
+> so anyone may build one. here are five.
 
 REAL: the two-window ripple. One click, both windows flip, seq identical,
 "2 here". Then the lens cuts, fast, 1.5 seconds each, path tags on:
@@ -82,36 +82,36 @@ timeline, quilt, swatch tapped, console.
 
 ## beat 7 · the agent (~10s) · motion + REAL
 
-> your agent does not want a face at all.
+> your ai agent needs no interface at all.
 
 The getTools line types on; the tool calls fire; then REAL: the console
 lens, a verb typed by hand, the result and the state stream arriving.
 
-> its verbs become your agent's tools the moment you arrive.
+> the app's actions register as browser tools (webmcp) the moment the page opens.
 > nothing installed. no account. no sdk.
 
 **CUT: but.**
 
 ## beat 8 · the trust problem (~9s) · motion
 
-> anyone can act on it.
-> why would you trust it?
+> anyone can act on this app.
+> so why trust it?
 
 The verb's code types on, verbatim, three lines.
 
-> nothing is hidden. read it before you trust it.
+> every action's code is public. read it before you trust it.
 
 **CUT: but.**
 
 ## beat 9 · the receipts (~11s) · motion + REAL
 
-> surely this is a demo.
-> surely nothing is really running.
+> maybe this is all a mockup.
+> it is not. it has been running the whole time.
 
 REAL: the quilt, hundreds of stitches. Overlaid:
 
-> seq 229. strangers set every one of these.
-> at midnight utc it resets itself. no one is there when it happens.
+> 200 changes by strangers, each recorded once.
+> every midnight the app resets itself. nobody is there when it happens.
 
 **CUT: therefore.**
 
@@ -148,3 +148,10 @@ argument instead of scenery inside a tour.
 - Beats 1 to 4 are new motion. Beats 5 to 10 recut existing material with
   new timing: faster, nothing on screen longer than it needs to be read
   once.
+
+## language rule (third pass)
+
+No internal vocabulary before the film has earned it: interface, not face;
+the manual, not charter; actions, not verbs; data, not state; one web
+address, not url-of-record. Every real clip's overlay says what you are
+seeing, not what we call it.

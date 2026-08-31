@@ -106,7 +106,7 @@ const segments = {
   b1: page("b1", 8, `
     <div class="stage">
       <div class="big fadein" id="l1">you built an app.</div>
-      <div class="big fadein" id="l2">you designed its face. it is perfect.</div>
+      <div class="big fadein" id="l2">you designed its interface. it is perfect.</div>
       <div class="panel scene fadein" id="p" style="margin-top: 20px;">${MOCK}</div>
     </div>`, `
   fade("#l1", 0.4); fade("#l2", 1.6); fade("#p", 3.0, 0.8);
@@ -115,9 +115,9 @@ const segments = {
   // beat 2: the contexts. the perfect face collapses three times.
   b2: page("b2", 9, `
     <div class="variant" id="v0"><div class="line dim" id="c0">&nbsp;</div><div class="panel scene" style="margin-top: 20px;">${MOCK}</div></div>
-    <div class="variant" id="v1" style="opacity: 0;"><div class="line dim">your user is driving.</div><div class="big" style="margin-top: 40px;">blocked. we will talk later.</div></div>
-    <div class="variant" id="v2" style="opacity: 0;"><div class="line dim">your user cannot see.</div><div class="line out" style="margin-top: 40px;">expenses, march. five entries. add, filter, export.<br>spoken, in order, nothing more.</div></div>
-    <div class="variant" id="v3" style="opacity: 0;"><div class="line dim">your user is not human.</div><pre class="line out" style="margin-top: 40px;">{ "month": "march", "entries": 5, "verbs": ["add", "filter", "export"] }</pre></div>`, `
+    <div class="variant" id="v1" style="opacity: 0;"><div class="line dim">your user is driving.</div><div class="big" style="margin-top: 40px;">blocked. we will talk later.</div><div class="comment" style="margin-top: 30px;"># no screen. one sentence.</div></div>
+    <div class="variant" id="v2" style="opacity: 0;"><div class="line dim">your user cannot see.</div><div class="line out" style="margin-top: 40px;">"expenses for march. five entries.<br>you can add, filter, or export."</div><div class="comment" style="margin-top: 30px;"># the same app, read aloud.</div></div>
+    <div class="variant" id="v3" style="opacity: 0;"><div class="line dim">your user is not human.</div><pre class="line out" style="margin-top: 40px;">{ "month": "march", "entries": 5, "actions": ["add", "filter", "export"] }</pre><div class="comment" style="margin-top: 30px;"># the same app, as data for an agent.</div></div>`, `
   cut("#v0", 0, true);
   cut("#v0", 2.2, false); cut("#v1", 2.2, true);
   cut("#v1", 4.6, false); cut("#v2", 4.6, true);
@@ -128,7 +128,7 @@ const segments = {
   b3: page("b3", 5, `
     <div class="stage center">
       <div class="big fadein" id="l1">there is no perfect interface.</div>
-      <div class="big fadein" id="l2">there are contexts.</div>
+      <div class="big fadein" id="l2">there are only situations.</div>
     </div>`, `
   fade("#l1", 0.4); fade("#l2", 1.8);
 `),
@@ -136,9 +136,9 @@ const segments = {
   // beat 4: the villain.
   b4: page("b4", 7, `
     <div class="stage">
-      <div class="big fadein" id="l1">every app ships exactly one face.</div>
-      <div class="big fadein" id="l2">welded on.</div>
-      <div class="line fadein" id="l3" style="margin-top: 16px;">therefore everyone lives in someone else's compromise.</div>
+      <div class="big fadein" id="l1">every app you use ships one fixed interface.</div>
+      <div class="big fadein" id="l2">the one its maker chose.</div>
+      <div class="line fadein" id="l3" style="margin-top: 16px;">whatever your situation, you get the same compromise.</div>
     </div>`, `
   fade("#l1", 0.4); fade("#l2", 1.8); fade("#l3", 3.4);
 `),
@@ -146,12 +146,12 @@ const segments = {
   // beat 5: the separation. the church drifts off; the state remains.
   b5: page("b5", 8, `
     <div class="stage">
-      <div class="big fadein" id="t">separate the face from the app.</div>
+      <div class="big fadein" id="t">separate the interface from the app.</div>
       <div style="display: flex; gap: 28px; margin-top: 24px;">
-        <div class="panel scene fadein" id="church" style="flex: 1;"><span class="out" style="font-weight: 500;">the church</span><br><span class="dim" style="font-size: 21px;">faces, chats, widgets, voices. disposable, anyone's.</span></div>
-        <div class="panel fadein" id="state" style="flex: 1; border-color: ${C.label};"><span class="out" style="font-weight: 500;">the state</span><br><span class="dim" style="font-size: 21px;">a charter and a state, at one url, manual baked in.</span></div>
+        <div class="panel scene fadein" id="church" style="flex: 1;"><span class="out" style="font-weight: 500;">interfaces</span><br><span class="dim" style="font-size: 21px;">screens, chats, voices. many at once, disposable, anyone can make one.</span></div>
+        <div class="panel fadein" id="state" style="flex: 1; border-color: ${C.label};"><span class="out" style="font-weight: 500;">the app itself</span><br><span class="dim" style="font-size: 21px;">its data, its actions, and its manual. at one web address.</span></div>
       </div>
-      <div class="comment fadein" id="c"># what remains is the app itself.</div>
+      <div class="comment fadein" id="c"># the interface is replaceable. the app is not.</div>
     </div>`, `
   fade("#t", 0.3); fade("#church", 1.4); fade("#state", 1.4);
   tl.to("#church", { x: -700, opacity: 0, duration: 1.4, ease: "power2.in" }, 3.6);
@@ -161,8 +161,8 @@ const segments = {
   // beat 6 opener: the objection, answered.
   b6: page("b6", 5, `
     <div class="stage center">
-      <div class="big fadein" id="l1">an app with no face is useless.</div>
-      <div class="big fadein" id="l2">therefore anyone may give it one.</div>
+      <div class="big fadein" id="l1">an app with no interface sounds useless.</div>
+      <div class="big fadein" id="l2">so anyone may build one. here are five.</div>
     </div>`, `
   fade("#l1", 0.4); fade("#l2", 2.2);
 `),
@@ -170,9 +170,9 @@ const segments = {
   // beat 7 opener: the agent.
   b7: page("b7", 7, `
     <div class="stage">
-      <div class="big fadein" id="t">your agent does not want a face at all.</div>
+      <div class="big fadein" id="t">your ai agent needs no interface at all.</div>
       <div class="line dim" style="margin-top: 16px;"><span id="gt"></span></div>
-      <div class="comment fadein" id="c"># its verbs become your agent's tools the moment you arrive. nothing installed. no account. no sdk.</div>
+      <div class="comment fadein" id="c"># the app's actions register as browser tools (webmcp). your agent can use them the moment the page opens. nothing installed. no account. no sdk.</div>
     </div>`, `
   fade("#t", 0.4);
   type("#gt", ${T("> document.modelContext.getTools() → set_mode · set_accent · set_radius · reset")}, 1.8, 2.2);
@@ -182,10 +182,10 @@ const segments = {
   // beat 8: the trust problem.
   b8: page("b8", 9, `
     <div class="stage">
-      <div class="big fadein" id="l1">anyone can act on it.</div>
-      <div class="big fadein" id="l2">why would you trust it?</div>
-      <div class="panel fadein" id="p" style="margin-top: 12px;"><pre class="out" id="code"></pre></div>
-      <div class="comment fadein" id="c"># nothing is hidden. read it before you trust it.</div>
+      <div class="big fadein" id="l1">anyone can act on this app.</div>
+      <div class="big fadein" id="l2">so why trust it?</div>
+      <div class="panel fadein" id="p" style="margin-top: 12px;"><div class="dim" style="margin-bottom: 8px;">the code behind the "dark mode" action, exactly as it runs:</div><pre class="out" id="code"></pre></div>
+      <div class="comment fadein" id="c"># every action's code is public. read it before you trust it.</div>
     </div>`, `
   fade("#l1", 0.3); fade("#l2", 1.4);
   fade("#p", 2.8);
@@ -196,8 +196,8 @@ const segments = {
   // beat 9 opener: the doubter.
   b9: page("b9", 4, `
     <div class="stage center">
-      <div class="big fadein" id="l1">surely this is a demo.</div>
-      <div class="big fadein" id="l2">surely nothing is really running.</div>
+      <div class="big fadein" id="l1">maybe this is all a mockup.</div>
+      <div class="big fadein" id="l2">it is not. it has been running the whole time.</div>
     </div>`, `
   fade("#l1", 0.3); fade("#l2", 1.6);
 `),
@@ -248,11 +248,11 @@ const overlaySpecs = {
   "tag-quilt": tag("/f/quilt"),
   "tag-swatch": tag("/f/swatch · anyone may tap"),
   "tag-console": tag("/f/console · a repl over any app"),
-  "ov-charter": lower("the whole contract, from one request."),
-  "ov-ripple": lower("one click. every open copy of this page follows."),
-  "ov-faces": lower("this is one face. this is another. and another."),
-  "ov-none": lower("none of them is the app."),
-  "ov-receipts": lower("every stitch a stranger, recorded exactly once.<br>at midnight utc it resets itself. no one is there when it happens."),
+  "ov-charter": lower("the manual, served by the app itself. everything an interface needs to exist."),
+  "ov-ripple": lower("one click in the left window. both follow, instantly. this app is shared."),
+  "ov-faces": lower("different interfaces. same app."),
+  "ov-none": lower("none of them is the app. all of them work."),
+  "ov-receipts": lower("200 changes by strangers, each recorded once.<br>every midnight the app resets itself. nobody is there when it happens."),
 };
 
 const pwPath = process.argv[2];
