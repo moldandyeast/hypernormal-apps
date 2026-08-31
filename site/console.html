@@ -102,7 +102,7 @@
   }
 
   const appUrl = guardedAppUrl();
-  if (appUrl) {
+  if (appUrl) { try {
     const app = await connect(appUrl, { tools: false });
     document.getElementById("main").hidden = false;
     document.getElementById("note").textContent = "# public verbs only; owner verbs answer 404 to strangers, as the manual says. state lines arrive over the socket.";
@@ -140,7 +140,9 @@
         say("er", `error  ${err.message}`);
       }
     });
-  }
+  } catch (e) {
+    document.getElementById("note").textContent = `# this face could not reach its app: ${e.message}`;
+  } }
 </script>
 </body>
 </html>

@@ -95,7 +95,7 @@
   }
 
   const appUrl = guardedAppUrl();
-  if (appUrl) {
+  if (appUrl) { try {
     document.getElementById("links").hidden = false;
     document.getElementById("link-app").href = `${new URL(appUrl).pathname}/state`;
     document.getElementById("link-timeline").href = `/f/timeline?app=${new URL(appUrl).pathname}`;
@@ -114,7 +114,9 @@
         `<h2>by mode</h2>` + bars(count("mode"), (n) => (n === "dark" ? (mode === "dark" ? "#C6CAD0" : "#26282B") : (mode === "dark" ? "#3A3F45" : "#C9CDD2")), entries.length) +
         `<h2>by corners</h2>` + bars(count("radius"), () => "var(--label)", entries.length);
     });
-  }
+  } catch (e) {
+    document.getElementById("out").innerHTML = `<p class="empty"># could not reach the app: ${esc(e.message)}</p>`;
+  } }
 </script>
 </body>
 </html>

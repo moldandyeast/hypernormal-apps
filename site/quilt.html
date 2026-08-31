@@ -84,7 +84,7 @@
   }
 
   const appUrl = guardedAppUrl();
-  if (appUrl) {
+  if (appUrl) { try {
     document.getElementById("links").hidden = false;
     document.getElementById("link-app").href = `${new URL(appUrl).pathname}/state`;
     document.getElementById("link-timeline").href = `/f/timeline?app=${new URL(appUrl).pathname}`;
@@ -102,7 +102,9 @@
         return `<span class="stitch" title="#${e.seq} · ${esc(l.accent)} ${esc(l.mode)} ${esc(l.radius)}" style="background:${CLOTH[l.mode] ?? "#FFFFFF"};border-radius:${CUT[l.radius] ?? "3px"}"><i style="background:${thread}"></i></span>`;
       }).join("");
     });
-  }
+  } catch (e) {
+    document.getElementById("quilt").innerHTML = `<span class="comment"># could not reach the app: ${esc(e.message)}</span>`;
+  } }
 </script>
 </body>
 </html>

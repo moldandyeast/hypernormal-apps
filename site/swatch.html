@@ -58,7 +58,7 @@
   }
 
   const appUrl = guardedAppUrl();
-  if (appUrl) {
+  if (appUrl) { try {
     const app = await connect(appUrl, { tools: false });
     // The tap target comes from the charter, not from this file: the accent
     // enum is read from set_accent's own input schema.
@@ -83,7 +83,9 @@
       const next = list[(list.indexOf(app.state.value?.accent) + 1) % list.length];
       app.verbs.set_accent({ accent: next }).catch(() => {});
     });
-  }
+  } catch (e) {
+    document.getElementById("name").textContent = "swatch"; document.getElementById("sub").textContent = `# could not reach the app: ${e.message}`;
+  } }
 </script>
 </body>
 </html>

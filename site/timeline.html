@@ -90,7 +90,7 @@
   }
 
   const appUrl = guardedAppUrl();
-  if (appUrl) {
+  if (appUrl) { try {
     document.getElementById("links").hidden = false;
     document.getElementById("link-app").href = `${new URL(appUrl).pathname}/state`;
     document.getElementById("link-stats").href = `/f/stats?app=${new URL(appUrl).pathname}`;
@@ -104,7 +104,9 @@
             <span class="what">${esc(e.look.accent)} · ${esc(e.look.mode)} · ${esc(e.look.radius)}</span>
             <span class="when">#${e.seq} · ${ago(e.at)}</span></li>`).join("");
     });
-  }
+  } catch (e) {
+    document.getElementById("list").innerHTML = `<li style="border: 0; color: var(--comment);"># could not reach the app: ${esc(e.message)}</li>`;
+  } }
 </script>
 </body>
 </html>
