@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1920, height=1080" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: #0A0A0A; }
+  body { font-family: "Geist Mono", monospace; color: #8F949C; }
+  .stage { width: 1920px; height: 1080px; display: flex; flex-direction: column; justify-content: center; padding: 0 320px; gap: 26px; }
+  .center { align-items: center; text-align: center; }
+  .big { font-size: 52px; font-weight: 500; color: #C6CAD0; line-height: 1.35; }
+  .title { font-size: 44px; font-weight: 500; color: #C6CAD0; line-height: 1.3; }
+  .line { font-size: 30px; line-height: 1.6; }
+  .dim { color: #6B717A; }
+  .out { color: #C6CAD0; }
+  .comment { font-size: 24px; color: #767C84; }
+  .panel { border: 1px solid #262626; background: #0F0F0F; padding: 34px 40px; font-size: 25px; line-height: 1.7; }
+  .panel.scene { border-style: dashed; border-color: #3A3A3A; background: transparent; }
+  pre { font: inherit; white-space: pre-wrap; }
+  .cursor { display: inline-block; width: 0.5em; height: 0.95em; vertical-align: text-bottom; }
+  .accent { color: #63E6BE; }
+  .fadein { opacity: 0; }
+  .word { font-size: 72px; font-weight: 500; }
+  .mockui { width: 860px; }
+  .mock-head { display: flex; gap: 10px; margin-bottom: 24px; }
+  .mock-head i { width: 14px; height: 14px; border-radius: 7px; background: #262626; display: block; }
+  .mock-title { font-size: 26px; color: #C6CAD0; margin-bottom: 18px; }
+  .mock-chips { display: flex; gap: 14px; margin-bottom: 26px; }
+  .mock-chips span { border: 1px solid #6B717A; padding: 6px 18px; font-size: 20px; color: #C6CAD0; }
+  .mock-bars { display: flex; gap: 12px; align-items: flex-end; height: 120px; }
+  .mock-bars i { width: 42px; display: block; background: #63E6BE; opacity: .85; }
+  .variant { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; padding: 0 320px; }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="b9" data-start="0" data-duration="4" data-width="1920" data-height="1080">
+
+    <div class="stage center">
+      <div class="big fadein" id="l1">surely this is a demo.</div>
+      <div class="big fadein" id="l2">surely nothing is really running.</div>
+    </div>
+</div>
+<script>
+  window.__timelines = window.__timelines || {};
+  const tl = gsap.timeline({ paused: true });
+  function type(sel, text, at, dur) {
+    const el = document.querySelector(sel);
+    el.textContent = "";
+    const st = { n: 0 };
+    tl.to(st, { n: text.length, duration: dur, ease: "none",
+      onUpdate: () => { el.textContent = text.slice(0, Math.round(st.n)); } }, at);
+  }
+  function fade(sel, at, dur = 0.6) {
+    tl.fromTo(sel, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: dur, ease: "power2.out" }, at);
+  }
+  function cut(sel, at, show) {
+    tl.set(sel, { opacity: show ? 1 : 0 }, at);
+  }
+  function blink(sel, at, cycles) {
+    tl.to(sel, { opacity: 0, duration: 0.45, yoyo: true, repeat: cycles * 2, ease: "steps(1)" }, at);
+  }
+
+  fade("#l1", 0.3); fade("#l2", 1.6);
+
+  window.__timelines["b9"] = tl;
+</script>
+</body>
+</html>
