@@ -8,12 +8,12 @@
     {
       "id": "file",
       "title": "an app is a spreadsheet wearing an experience.",
-      "body": "apps have always been data with an experience layer on top. add functions to a spreadsheet and you have a program. we collect static files and call them second brains, but knowledge and language are never static.\n\nso the file becomes a small durable state machine at a url. every change lands one at a time, in order. it can be watched over a websocket and written by many hands. its id is tied to its host, so it carries provenance and identity. multiplayer by default, alive on its own."
+      "body": "apps have always been data with an experience layer on top. add functions to a spreadsheet and you have a program. we collect static files and call them second brains, but knowledge and language are never static.\n\nso the file becomes a small durable state machine at a url: a little program that holds its data and can change it, living at one web address. every change lands one at a time, in order. it can be watched over a websocket and written by many hands. its id is tied to its host, so it carries provenance and identity. multiplayer by default, alive on its own."
     },
     {
       "id": "separation",
       "title": "separate church from state.",
-      "body": "the design is not the app. the church is the designed expression; the state is the data and the verbs. smart contracts made the frontend optional, anyone can build one or interact directly. but their manuals live outside, in docs.\n\nhere the manual is baked in. ping the address and receive the charter: what it is, what it can do, how to speak to it. a stranger with nothing but the url has everything, and if the charter leaves a question open, that is a defect in the charter."
+      "body": "the design is not the app. we call the designed side the church: screens, chats, voices, all replaceable. we call what remains the state: the data, plus the actions that may change it. those actions, we call verbs. smart contracts made the frontend optional, anyone can build one or interact directly. but their manuals live outside, in docs.\n\nhere the manual is baked in. ping the address and receive the charter: what it is, what it can do, how to speak to it. a stranger with nothing but the url has everything, and if the charter leaves a question open, that is a defect in the charter."
     },
     {
       "id": "hood",
@@ -33,7 +33,7 @@
     {
       "id": "lenses",
       "title": "one app, many lenses.",
-      "body": "a creator ships views; the user is not tied to them. use an app as the creator intended. use it through your agent, its verbs become your agent's tools. or hand the charter to an agent and have it derive a face just for you, on the spot.\n\nthe same schema serves everyone: the person who can only speak, the person who cannot see, the person who wants one number on a watch face. accessibility stops being a separate version. below, one app seen twice."
+      "body": "a creator ships interfaces; the user is not tied to them. we call them faces, because none of them is ever the app's own face: an app has none. use an app as the creator intended. use it through your agent, its verbs become your agent's tools. or hand the charter to an agent and have it derive a face just for you, on the spot.\n\nthe same schema serves everyone: the person who can only speak, the person who cannot see, the person who wants one number on a watch face. accessibility stops being a separate version. below, one app seen twice."
     },
     {
       "id": "derived",

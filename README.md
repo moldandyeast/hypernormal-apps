@@ -33,14 +33,14 @@ swarm of actors around shared state, than to platforms.
 
 One app, many lenses. A creator ships views; the user is not tied to them.
 Use an app as the creator intended, use it through your agent, its verbs
-becoming tools over WebMCP, or have an agent derive a face from the charter
-alone. The same schema serves the person who can only speak, the person who
+becoming tools over WebMCP, or have an agent derive an interface, a face of
+your own, from the charter alone. The same schema serves the person who can only speak, the person who
 cannot see, the person who wants one number on a watch face. Accessibility
 stops being a separate version.
 
 None of this abolishes design. It multiplies the places where design happens:
 someone still shapes the chat's tone, the glanceable widget, the deep view.
-It is just no longer welded to one app. Faces compose like lego: one face
+It is just no longer bound to one app. Faces compose like lego: one interface
 over many apps, disposable, built for a moment. Tokens per second keep
 rising; UI arrives just in time.
 
